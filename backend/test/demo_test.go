@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -23,28 +24,61 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/risk"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
-// The suite demo (#270): a small snapshot built and linked against the stubs, the endpoints' refusals, and the
-// demo's rows guarded straight through SQL.
+// The suite demo (#270, #488): a small snapshot with its specifications built, linked and run against the stubs, the
+// endpoints' refusals, and the demo's rows guarded straight through SQL.
 
-// demoFixture is a snapshot whose Exciter issues the armature-stub's EXC project and the stator-stub's EXC space
-// know, beside one of Armature's that neither has.
-func demoFixture() demo.Snapshot {
-	story := func(s string) string { return "## User story\n\nAs a tester, I want " + s + ".\n" }
-	return demo.Snapshot{Tools: []demo.Tool{
-		{Repo: "Cloudster1/Armature", Key: "ARM", Name: "Armature", Taken: "2026-10-20", Issues: []demo.Issue{
-			{Number: 9, Title: "Boards", Closed: true, Body: story("boards")},
-		}},
-		{Repo: "Cloudster1/Exciter", Key: "EXC", Name: "Exciter", Taken: "2026-10-20", Issues: []demo.Issue{
-			{Number: 1, Title: "Projects", Closed: true, Milestone: "M2 Armature integration",
-				Body: story("projects") + "\n## Acceptance criteria\n\n- [x] **Making one:** an administrator makes a project.\n- [x] **Keys:** each has a key.\n"},
-			{Number: 2, Title: "Requirements", Milestone: "M2 Armature integration", Body: story("requirements") + "\n## Depends on\n\n- #1\n"},
-			{Number: 3, Title: "Trace links", Closed: true, Milestone: "Backlog", Body: story("links") + "\nDepends on: Cloudster1/Armature#9.\n"},
-			{Number: 4, Title: "Not in Armature", Body: story("nothing")},
-		}},
+// demoSpecs are the files of the fixture's specifications, by tool. Exciter's name issues and a guide page the
+// armature-stub's EXC project and the stator-stub's EXC space know; Armature's name what neither has.
+var demoSpecs = map[string]map[string]string{
+	"ARM": {
+		"spec/armature/10-boards.md": "# Functional requirements / Boards\n\n### FR-1 Rename a board\ntype: Functional\npriority: should\n" +
+			"verification: Test\nissues: ARM-9\nguide: boards\n\nArmature shall show a renamed board under its new name.\n",
+		"spec/armature/80-tests.md": "# Test specification\n\n### TC-1 Rename a board\ntype: Test case\nverifies: FR-1\nresult: passed\n\n" +
+			"| Action | Expected |\n|---|---|\n| Rename the board. | It shows its new name. |\n",
+	},
+	"EXC": {
+		"spec/exciter/01-introduction.md": "# Introduction\n\nWhat Exciter is for.\n",
+		"spec/exciter/02-needs.md": "# Stakeholder needs\n\n### SN-1 Know what a change touches\ntype: Stakeholder need\npriority: must\n\n" +
+			"An engineer needs to see what depends on a change.\n",
+		"spec/exciter/10-traceability.md": "# Functional requirements / Traceability\n\nHow requirements are traced.\n\n" +
+			"### FR-1 Link two requirements\ntype: Functional\npriority: must\nverification: Test\ncomponent: Traceability\nrefines: SN-1\n" +
+			"issues: EXC-1, EXC-2\nguide: links\n\nExciter shall keep a typed link between two requirements.\n\nRationale: A type says how they relate.\n\n" +
+			"### FR-2 Mark links suspect\ntype: Functional\npriority: must\nverification: Test\nrelates: FR-1\nissues: EXC-3\nguide: links\n\n" +
+			"Exciter shall mark the links of a changed requirement suspect.\n\n## Changes\n\n" +
+			"### FR-3 Clear a suspect mark\ntype: Non-functional\npriority: could\nverification: Inspection\nrefines: SN-1\n\n" +
+			"Exciter shall let a person clear a suspect mark.\n",
+		"spec/exciter/80-tests.md": "# Test specification\n\n" +
+			"### TC-1 Link and read back\ntype: Test case\nverifies: FR-1\nautomated: yes\nresult: passed\n\n" +
+			"Preconditions: Two requirements.\n\n| Action | Expected |\n|---|---|\n| Link them as `type`. | Both list the link. |\n| Reload. | |\n\n" +
+			"Parameters: type = refines, relates\n\n" +
+			"### TC-2 Change and clear\ntype: Test case\nverifies: FR-2, FR-3\nautomated: no\nresult: failed\nnote: The mark stayed after clearing it.\n\n" +
+			"| Action | Expected |\n|---|---|\n| Change the second requirement. | The link is suspect. |\n",
+	},
+}
+
+// demoFixture is a snapshot of Armature and Exciter with their specifications; EXC-3 is open.
+func demoFixture(t *testing.T) demo.Snapshot {
+	t.Helper()
+	s := demo.Snapshot{Tools: []demo.Tool{
+		{Repo: "Cloudster1/Armature", Key: "ARM", Name: "Armature", Commit: "a1b2c3d4e5f6a7b8", Taken: "2026-10-20", Issues: []demo.Issue{{Number: 9, Closed: true}}},
+		{Repo: "Cloudster1/Exciter", Key: "EXC", Name: "Exciter", Commit: "0123456789abcdef", Taken: "2026-10-20", Issues: []demo.Issue{
+			{Number: 1, Closed: true}, {Number: 2, Closed: true}, {Number: 3}}},
 	}}
+	for i, tool := range s.Tools {
+		names := slices.Sorted(maps.Keys(demoSpecs[tool.Key]))
+		for _, name := range names {
+			f, err := demo.ParseSpec(name, demoSpecs[tool.Key][name])
+			if err != nil {
+				t.Fatal(err)
+			}
+			s.Tools[i].Spec = append(s.Tools[i].Spec, f)
+		}
+	}
+	return s
 }
 
 // demoArchitecture is one drawing of Exciter's architecture, filed after the introduction.
@@ -57,7 +91,7 @@ func (h *harness) demoService(t *testing.T) *demo.Service {
 	t.Helper()
 	return demo.NewService(h.cluster, project.NewService(h.cluster).WithSeeder(risk.SeedProject),
 		requirement.NewService(h.cluster).WithCoverage(trace.CoverageJudge{}), trace.NewService(h.cluster),
-		baseline.NewService(h.cluster), h.armature(t), h.stator(t))
+		baseline.NewService(h.cluster), testexec.NewService(h.cluster, nil), h.armature(t), h.stator(t))
 }
 
 // keepSuiteDemo starts the test with no suite demo and puts back the one there was, with its projects' records.
@@ -74,7 +108,16 @@ func (h *harness) keepSuiteDemo(t *testing.T) {
 	})
 }
 
-func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
+// demoExcTree is Exciter's tree as the fixture files it: each section in the order of the files, the architecture
+// after the introduction, and each item with its type, its status and its priority.
+var demoExcTree = []string{
+	"Introduction", "Architecture", "  Components [Functional, Approved]", "Stakeholder needs", "  Know what a change touches [Stakeholder need, Approved, must]",
+	"Functional requirements", "  Traceability", "    Link two requirements [Functional, Verified, must]", "    Mark links suspect [Functional, Approved, must]",
+	"    Changes", "      Clear a suspect mark [Non-functional, Approved, could]", "Test specification",
+	"  Link and read back [Test case, Approved]", "  Change and clear [Test case, Approved]",
+}
+
+func TestTheSuiteDemoIsBuiltLinkedAndRun(t *testing.T) {
 	exc, arm := projectKey(t, "DEX"), projectKey(t, "DAR")
 	h := newHarness(t)
 	h.keepArmature(t)
@@ -92,7 +135,7 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 	want(t, owner.put(t, "/api/v1/stator/connection", map[string]any{"baseUrl": statorURL(t), "webhookSecret": statorWebhookSecret}), http.StatusOK, "connect Stator")
 	want(t, owner.put(t, "/api/v1/stator/account/token", map[string]any{"token": statorPat(tenant, "alice")}), http.StatusOK, "connect to Stator")
 
-	fixture := demoFixture()
+	fixture := demoFixture(t)
 	fixture.Tools[1].Architecture = demoArchitecture()
 	svc, plan := h.demoService(t), demo.Make(fixture)
 	keys := map[string]string{"EXC": exc, "ARM": arm}
@@ -101,31 +144,51 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.settle(t)
-	// Each project's About, Exciter's drawing, four issues and two criteria, and Armature's one.
-	if made != 10 {
-		t.Errorf("the demo made %d requirements, want 10", made)
+	// Armature's requirement and test case; Exciter's drawing, need, three requirements and two test cases.
+	if made != 9 {
+		t.Errorf("the demo made %d requirements, want 9", made)
 	}
+	ctx := context.Background()
 
-	t.Run("the issues are filed by milestone in their order, with their criteria", func(t *testing.T) {
-		rows := h.demoTree(t, exc)
-		want := []string{
-			"Introduction", "  About Exciter [Approved]", "Architecture", "  Components [Approved]", "Functional requirements", "  M2 Armature integration", "    Projects [Approved, M2 Armature integration]",
-			"      Making one [Approved]", "      Keys [Approved]", "    Requirements [Draft, M2 Armature integration]", "  Backlog",
-			"    Trace links [Approved, Backlog]", "  Without a milestone", "    Not in Armature [Draft]", "Non-functional requirements", "Interfaces",
+	t.Run("the specification is filed by its sections, with types, statuses and priorities", func(t *testing.T) {
+		if rows := h.demoTree(t, exc); !slices.Equal(rows, demoExcTree) {
+			t.Errorf("the tree is\n%s\nwant\n%s", strings.Join(rows, "\n"), strings.Join(demoExcTree, "\n"))
 		}
-		if !slices.Equal(rows, want) {
-			t.Errorf("the tree is\n%s\nwant\n%s", strings.Join(rows, "\n"), strings.Join(want, "\n"))
+		var types []string
+		rows, err := h.super.Query(ctx, `SELECT t.name || ':' || t.role FROM requirement_type t JOIN project p ON p.id = t.project_id
+			WHERE p.key = $1 ORDER BY t.position`, exc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if types, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil || !slices.Equal(types, []string{"Functional:requirement",
+			"Non-functional:requirement", "Interface:requirement", "Use case:requirement", "Stakeholder need:requirement", "Test case:testCase",
+			"Test procedure:requirement"}) {
+			t.Errorf("the types are %v (%v)", types, err)
 		}
 	})
 
-	t.Run("the architecture section introduces its drawings, kept as diagrams", func(t *testing.T) {
-		var intro, drawn bool
-		if err := h.super.QueryRow(context.Background(), `SELECT
-			coalesce(bool_or(r.kind = 'section' AND r.statement::text LIKE '%How Exciter is built.%'), false),
-			coalesce(bool_or(r.kind = 'requirement' AND jsonb_path_exists(r.statement, '$.**.type ? (@ == "diagram")')), false)
-			FROM requirement r JOIN project p ON p.id = r.project_id WHERE p.key = $1 AND r.title IN ('Architecture', 'Components')`,
-			exc).Scan(&intro, &drawn); err != nil || !intro || !drawn {
-			t.Errorf("the section is introduced %v and the view drawn %v (%v)", intro, drawn, err)
+	t.Run("an item carries its rationale, attributes and test steps", func(t *testing.T) {
+		var rationale, verification, component, preconditions bool
+		var steps, parameters int
+		var automated *bool
+		if err := h.super.QueryRow(ctx, `SELECT
+			bool_or(r.title = 'Link two requirements' AND r.rationale::text LIKE '%A type says how they relate.%'),
+			bool_or(r.title = 'Link two requirements' AND EXISTS (SELECT 1 FROM attribute_def d, jsonb_array_elements(d.options) o
+				WHERE d.project_id = p.id AND d.name = 'Verification method' AND o->>'name' = 'Test' AND r.attributes->>(d.id::text) = o->>'id')),
+			bool_or(r.title = 'Link two requirements' AND EXISTS (SELECT 1 FROM attribute_def d WHERE d.project_id = p.id
+				AND d.name = 'Component' AND r.attributes->>(d.id::text) = 'Traceability')),
+			bool_or(r.title = 'Link and read back' AND r.preconditions::text LIKE '%Two requirements.%'),
+			max(jsonb_array_length(r.steps)) FILTER (WHERE r.title = 'Link and read back'),
+			max(jsonb_array_length(r.parameters)) FILTER (WHERE r.title = 'Link and read back'),
+			bool_or((SELECT (r.attributes->>(d.id::text))::boolean FROM attribute_def d WHERE d.project_id = p.id AND d.name = 'Automated'))
+				FILTER (WHERE r.title = 'Link and read back')
+			FROM requirement r JOIN project p ON p.id = r.project_id WHERE p.key = $1`, exc).Scan(
+			&rationale, &verification, &component, &preconditions, &steps, &parameters, &automated); err != nil {
+			t.Fatal(err)
+		}
+		if !rationale || !verification || !component || !preconditions || steps != 2 || parameters != 1 || automated == nil || !*automated {
+			t.Errorf("rationale %v, verification %v, component %v, preconditions %v, %d steps, %d parameters, automated %v",
+				rationale, verification, component, preconditions, steps, parameters, automated)
 		}
 	})
 
@@ -133,50 +196,84 @@ func TestTheSuiteDemoIsBuiltAndLinked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Run("dependencies, issues and pages are linked, and what the partners lack is counted", func(t *testing.T) {
-		// Two dependencies, EXC-1 to EXC-3 in Armature, and five pages: the M2 contract twice, README, and architecture
-		// for the About and the drawing.
-		if linked.Links != 10 || linked.Skipped != 4 {
-			t.Errorf("linking added %d and skipped %d, want 10 and 4: %v", linked.Links, linked.Skipped, linked.Notes)
+	t.Run("traces, issues and pages are linked, and what the partners lack is counted", func(t *testing.T) {
+		// Seven trace links, EXC-1 to EXC-3 in Armature, the guide twice and the drawing's document; ARM-9 and
+		// Armature's guide page are in neither stub.
+		if linked.Links != 13 || linked.Skipped != 2 {
+			t.Errorf("linking added %d and skipped %d, want 13 and 2: %v", linked.Links, linked.Skipped, linked.Notes)
 		}
 		if len(linked.Notes) != 2 || !strings.Contains(linked.Notes[0], "Armature") || !strings.Contains(linked.Notes[1], "Stator") {
 			t.Errorf("the notes say %v", linked.Notes)
 		}
-		var crossProject int
-		if err := h.super.QueryRow(context.Background(), `SELECT count(*) FROM trace_link l
-			JOIN requirement s ON s.id = l.source_id JOIN project sp ON sp.id = s.project_id
-			JOIN requirement d ON d.id = l.target_id JOIN project dp ON dp.id = d.project_id
-			WHERE sp.key = $1 AND dp.key = $2`, exc, arm).Scan(&crossProject); err != nil || crossProject != 1 {
-			t.Errorf("%d links from %s to %s (%v), want Trace links to Boards", crossProject, exc, arm, err)
-		}
-		var issues []string
-		rows, err := h.super.Query(context.Background(), `SELECT l.issue_key FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id
-			JOIN project p ON p.id = r.project_id WHERE p.key = $1 AND l.relation = 'implements' ORDER BY l.issue_key`, exc)
+		var traces []string
+		rows, err := h.super.Query(ctx, `SELECT s.title || ' ' || lt.key || ' ' || d.title FROM trace_link l
+			JOIN link_type lt ON lt.id = l.type_id JOIN requirement s ON s.id = l.source_id JOIN requirement d ON d.id = l.target_id
+			JOIN project p ON p.id = s.project_id WHERE p.key = $1 ORDER BY 1`, exc)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if issues, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil || !slices.Equal(issues, []string{"EXC-1", "EXC-2", "EXC-3"}) {
+		want := []string{"Change and clear verifies Clear a suspect mark", "Change and clear verifies Mark links suspect",
+			"Clear a suspect mark refines Know what a change touches", "Link and read back verifies Link two requirements",
+			"Link two requirements refines Know what a change touches", "Mark links suspect relates Link two requirements"}
+		if traces, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil || !slices.Equal(traces, want) {
+			t.Errorf("the traces are\n%s\nwant\n%s (%v)", strings.Join(traces, "\n"), strings.Join(want, "\n"), err)
+		}
+		var issues []string
+		rows, err = h.super.Query(ctx, `SELECT r.title || ' ' || l.issue_key FROM armature_issue_link l JOIN requirement r ON r.id = l.requirement_id
+			JOIN project p ON p.id = r.project_id WHERE p.key = $1 AND l.relation = 'implements' ORDER BY 1`, exc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if issues, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil || !slices.Equal(issues, []string{
+			"Link two requirements EXC-1", "Link two requirements EXC-2", "Mark links suspect EXC-3"}) {
 			t.Errorf("the issues linked are %v (%v)", issues, err)
+		}
+		var described int
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM stator_page_link l JOIN requirement r ON r.id = l.requirement_id
+			JOIN project p ON p.id = r.project_id WHERE p.key = $1 AND l.relation = 'describes'
+			AND r.title IN ('Link two requirements', 'Mark links suspect')`, exc).Scan(&described); err != nil || described != 2 {
+			t.Errorf("%d requirements are described by their guide page (%v), want 2", described, err)
 		}
 	})
 
 	t.Run("linking again adds nothing twice", func(t *testing.T) {
 		again, err := svc.Link(home.ctx, home.user, plan, keys)
-		if err != nil || again.Links != 0 || again.Skipped != 4 {
+		if err != nil || again.Links != 0 || again.Skipped != 2 {
 			t.Errorf("linking again added %d and skipped %d (%v)", again.Links, again.Skipped, err)
 		}
 	})
 
-	t.Run("a baseline named after the snapshot is taken once", func(t *testing.T) {
+	t.Run("each project's test cases run once against its baseline, and the run is closed", func(t *testing.T) {
 		for range 2 {
-			if err := svc.Baseline(home.ctx, home.user, plan, keys); err != nil {
-				t.Fatal(err)
+			for _, tool := range []string{"ARM", "EXC"} {
+				if err := svc.RunTests(home.ctx, home.user, plan, keys, tool); err != nil {
+					t.Fatal(err)
+				}
 			}
 		}
-		var n int
-		if err := h.super.QueryRow(context.Background(), `SELECT count(*) FROM baseline b JOIN project p ON p.id = b.project_id
-			WHERE p.key = ANY($1) AND b.name = 'Snapshot 2026-10-20'`, []string{exc, arm}).Scan(&n); err != nil || n != 2 {
-			t.Errorf("%d baselines (%v), want one a project", n, err)
+		var baselines, plans, executions int
+		if err := h.super.QueryRow(ctx, `SELECT
+			(SELECT count(*) FROM baseline b JOIN project p ON p.id = b.project_id WHERE p.key = ANY($1) AND b.name = $2),
+			(SELECT count(*) FROM test_plan t JOIN project p ON p.id = t.project_id WHERE p.key = ANY($1) AND t.title = $3),
+			(SELECT count(*) FROM test_execution e JOIN project p ON p.id = e.project_id WHERE p.key = ANY($1) AND e.title = $4
+				AND e.state = 'closed' AND e.baseline_name = $2)`, []string{exc, arm}, demo.BaselineName, demo.PlanTitle, demo.ExecutionTitle).Scan(
+			&baselines, &plans, &executions); err != nil || baselines != 2 || plans != 2 || executions != 2 {
+			t.Errorf("%d baselines, %d plans and %d closed runs (%v), want one each a project", baselines, plans, executions, err)
+		}
+		var results []string
+		rows, err := h.super.Query(ctx, `SELECT r.title || ' ' || c.iteration || ' ' || c.outcome || coalesce(nullif(' ' || c.note, ' '), '')
+			FROM test_execution_case c JOIN test_execution e ON e.id = c.execution_id JOIN requirement r ON r.id = c.requirement_id
+			JOIN project p ON p.id = e.project_id WHERE p.key = $1 ORDER BY 1`, exc)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := []string{"Change and clear 1 failed The mark stayed after clearing it.", "Link and read back 1 passed", "Link and read back 2 passed"}
+		if results, err = pgx.CollectRows(rows, pgx.RowTo[string]); err != nil || !slices.Equal(results, want) {
+			t.Errorf("the results are %v (%v), want %v", results, err, want)
+		}
+		var version string
+		if err := h.super.QueryRow(ctx, `SELECT e.version FROM test_execution e JOIN project p ON p.id = e.project_id WHERE p.key = $1`, exc).Scan(&version); err != nil || version != "0123456789ab" {
+			t.Errorf("the run tested %q (%v), want the snapshot's commit", version, err)
 		}
 	})
 }
@@ -193,7 +290,7 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 	h.keepStator(t)
 	home := h.owner(t, "suite-steps")
 	ctx := context.Background()
-	fixture := demoFixture()
+	fixture := demoFixture(t)
 	on := h
 	if h.replica != nil {
 		// Under load the replica falls behind the steps run back to back (#365). Here it is taken however far it
@@ -244,7 +341,8 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 			}
 		}
 		d := read(t)
-		if d.State != demo.StateDone || d.Step != steps || d.Requirements != 9 || d.Links != 2 || d.FinishedAt == nil {
+		// Without partners only the trace links are made.
+		if d.State != demo.StateDone || d.Step != steps || d.Requirements != 8 || d.Links != 7 || d.FinishedAt == nil {
 			t.Errorf("the demo ended as %+v", d)
 		}
 		for _, partner := range []string{"Armature is not connected", "Stator is not connected"} {
@@ -263,14 +361,19 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 		if err := svc.Step(home.ctx, home.user, steps-1); err != nil {
 			t.Fatal(err)
 		}
-		if again := read(t); again.Requirements != 9 {
+		if again := read(t); again.Requirements != 8 {
 			t.Errorf("the last step again made more: %+v", again)
+		}
+		var closed int
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM test_execution e JOIN project p ON p.id = e.project_id
+			WHERE p.key = ANY($1) AND e.state = 'closed'`, []string{arm, exc}).Scan(&closed); err != nil || closed != 2 {
+			t.Errorf("%d runs are closed (%v), want one a project", closed, err)
 		}
 	})
 
-	t.Run("linking again runs the link steps alone", func(t *testing.T) {
+	t.Run("linking again runs the link and test steps alone, and makes no second run", func(t *testing.T) {
 		d, _, err := svc.Relink(home.ctx, home.user)
-		if err != nil || d.State != demo.StateQueued || d.Kind != demo.KindLinks || d.Step != 0 || d.Steps != 3 {
+		if err != nil || d.State != demo.StateQueued || d.Kind != demo.KindLinks || d.Step != 0 || d.Steps != 4 {
 			t.Fatalf("relinking queued %+v (%v)", d, err)
 		}
 		if _, _, err := svc.Relink(home.ctx, home.user); !errors.Is(err, demo.ErrBusy) {
@@ -281,30 +384,34 @@ func TestTheSuiteDemoIsBuiltAStepAtATime(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		if d := read(t); d.State != demo.StateDone || d.Requirements != 9 || d.Links != 2 {
+		if d := read(t); d.State != demo.StateDone || d.Requirements != 8 || d.Links != 7 {
 			t.Errorf("after linking again the demo is %+v", d)
 		}
+		var runs int
+		if err := h.super.QueryRow(ctx, `SELECT count(*) FROM test_execution e JOIN project p ON p.id = e.project_id WHERE p.key = ANY($1)`,
+			[]string{arm, exc}).Scan(&runs); err != nil || runs != 2 {
+			t.Errorf("%d runs (%v), want one a project", runs, err)
+		}
 	})
-	if rows := h.demoTree(t, exc); len(rows) != 14 {
+	if rows := h.demoTree(t, exc); len(rows) != len(demoExcTree)-2 {
 		t.Errorf("the steps filed a tree of %d rows: %v", len(rows), rows)
 	}
 }
 
-// demoTree reads a project's tree as the superuser: each node indented by depth, with its status and Release.
+// demoTree reads a project's tree as the superuser: each node indented by depth, with its type, status and priority.
 func (h *harness) demoTree(t *testing.T, key string) []string {
 	t.Helper()
 	rows, err := h.super.Query(context.Background(), `
 		WITH RECURSIVE tree AS (
-			SELECT r.id, r.title, r.kind, r.status_id, r.attributes, 0 AS depth, ARRAY[r.rank::text, lpad(r.number::text, 10, '0')] AS path
+			SELECT r.id, r.title, r.kind, r.status_id, r.type_id, r.priority, 0 AS depth, ARRAY[r.rank::text, lpad(r.number::text, 10, '0')] AS path
 			FROM requirement r JOIN project p ON p.id = r.project_id
 			WHERE p.key = $1 AND r.parent_id IS NULL AND r.trashed_at IS NULL
 			UNION ALL
-			SELECT c.id, c.title, c.kind, c.status_id, c.attributes, t.depth + 1, t.path || ARRAY[c.rank::text, lpad(c.number::text, 10, '0')]
+			SELECT c.id, c.title, c.kind, c.status_id, c.type_id, c.priority, t.depth + 1, t.path || ARRAY[c.rank::text, lpad(c.number::text, 10, '0')]
 			FROM requirement c JOIN tree t ON c.parent_id = t.id WHERE c.trashed_at IS NULL)
 		SELECT repeat('  ', t.depth) || t.title ||
-		       CASE WHEN t.kind = 'section' THEN '' ELSE ' [' || concat_ws(', ', s.name,
-		           (SELECT v #>> '{}' FROM jsonb_each(t.attributes) AS a(k, v) LIMIT 1)) || ']' END
-		FROM tree t LEFT JOIN req_status s ON s.id = t.status_id ORDER BY t.path`, key)
+		       CASE WHEN t.kind = 'section' THEN '' ELSE ' [' || concat_ws(', ', ty.name, s.name, t.priority) || ']' END
+		FROM tree t LEFT JOIN req_status s ON s.id = t.status_id LEFT JOIN requirement_type ty ON ty.id = t.type_id ORDER BY t.path`, key)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -350,7 +457,7 @@ func TestTheSuiteDemoIsAddedOnce(t *testing.T) {
 		// A small snapshot under keys of the test's own, on a topic the stack's worker leaves alone.
 		keys := []string{projectKey(t, "DOA"), projectKey(t, "DOX")}
 		fixed := newAPIServerWith(t, h, func(_ *apiServer, s *httpapi.Server) {
-			s.Demo = h.demoService(t).WithSnapshot(demoFixture(), demoTopic, keys)
+			s.Demo = h.demoService(t).WithSnapshot(demoFixture(t), demoTopic, keys)
 		})
 		t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic) })
 		by := fixed.as(t, owner.user)
@@ -372,7 +479,7 @@ func TestTheSuiteDemoIsAddedOnce(t *testing.T) {
 		}
 		h.settle(t)
 		relinked := obj(t, want(t, by.post(t, "/api/v1/installation/suite-demo/links", nil), http.StatusAccepted, "link it again"), "demo")
-		if relinked["state"] != "queued" || relinked["kind"] != "links" || relinked["steps"] != float64(3) {
+		if relinked["state"] != "queued" || relinked["kind"] != "links" || relinked["steps"] != float64(4) {
 			t.Errorf("linking again reads %v", relinked)
 		}
 		h.cleanupExec(t, h.super, `DELETE FROM suite_demo`)
@@ -401,7 +508,7 @@ func TestRawSQLKeepsTheSuiteDemoToAdministrators(t *testing.T) {
 	admin := h.owner(t, "demo-sql")
 	member := h.addPerson(t, "member")
 	ctx := context.Background()
-	insert := `INSERT INTO suite_demo (taken, project_keys) VALUES ('2026-10-20', ARRAY['ARM', 'EXC', 'STA'])`
+	insert := `INSERT INTO suite_demo (taken, project_keys) VALUES ('2026-10-20', ARRAY['ARM', 'EXC', 'STA', 'ROT'])`
 
 	asMember := h.appConn(t, member)
 	if n := affects(t, asMember, `UPDATE suite_demo SET message = 'x'`); n != 0 {

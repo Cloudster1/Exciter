@@ -271,7 +271,7 @@ func TestAMemberCannotLinkTheSuiteDemoAgain(t *testing.T) {
 	h.keepSuiteDemo(t)
 	keys := []string{projectKey(t, "DLA"), projectKey(t, "DLX")}
 	a := newAPIServerWith(t, h, func(_ *apiServer, s *httpapi.Server) {
-		s.Demo = h.demoService(t).WithSnapshot(demoFixture(), demoTopic, keys)
+		s.Demo = h.demoService(t).WithSnapshot(demoFixture(t), demoTopic, keys)
 	})
 	t.Cleanup(func() { h.cleanupExec(t, h.super, `DELETE FROM outbox_event WHERE topic = $1`, demoTopic) })
 	ctx := context.Background()

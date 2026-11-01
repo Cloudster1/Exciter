@@ -117,13 +117,13 @@ func architectureSection(t Tool) *Section {
 		return nil
 	}
 	doc := fmt.Sprintf("[%s](https://github.com/%s/blob/%s/%s)", a.Source, t.Repo, a.Commit, a.Source)
-	sec := &Section{Title: SectionArchitecture, Intro: a.Intro}
+	sec := &Section{Path: []string{SectionArchitecture}, Intro: a.Intro}
 	for _, v := range a.Views {
 		sec.Items = append(sec.Items, Item{
 			Title:     v.Title,
 			Statement: v.Statement,
 			Rationale: "Drawn from " + doc + " and the code beside it.",
-			Approved:  true,
+			Status:    StatusApproved,
 			Pages:     []Page{{Label(t.Key, a.Source), Describes}},
 		})
 	}

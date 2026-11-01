@@ -238,6 +238,9 @@ func (s *Service) Create(ctx context.Context, reader uuid.UUID, in CreateInput) 
 		return nil, 0, err
 	}
 	blueprint, ok := BlueprintOf(in.Template)
+	if in.Blueprint != nil {
+		blueprint = *in.Blueprint
+	}
 	if in.Template != "" && (!ok || s.seed == nil) {
 		return nil, 0, &FieldError{"template", fmt.Sprintf(
 			"There is no project template called %s. Pick one from the list, or leave it out for a blank project.", in.Template)}

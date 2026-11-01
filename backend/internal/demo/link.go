@@ -9,16 +9,11 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/cloudster1/exciter/backend/internal/armature"
-	"github.com/cloudster1/exciter/backend/internal/baseline"
 	"github.com/cloudster1/exciter/backend/internal/db"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/stator"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
-
-// dependsType is the trace link type "Depends on" becomes: issues depend on each other in more ways than one
-// requirement derives from another.
-const dependsType = "relates"
 
 // Linked is what one linking added, and what it left for later.
 type Linked struct {
@@ -75,7 +70,7 @@ func (l *Linked) add(other Linked) {
 	}
 }
 
-// LinkProject adds what one tool's project is missing: its dependencies, its issues in Armature and its pages in
+// LinkProject adds what one tool's project is missing: its trace links, its issues in Armature and its pages in
 // Stator. What a partner cannot take yet is counted as skipped, and linking again adds it.
 func (s *Service) LinkProject(ctx context.Context, actor uuid.UUID, p Plan, keys map[string]string, tool string) (Linked, error) {
 	var out Linked
@@ -87,7 +82,7 @@ func (s *Service) LinkProject(ctx context.Context, actor uuid.UUID, p Plan, keys
 	if err != nil {
 		return out, err
 	}
-	if err := s.linkDependencies(ctx, actor, p, tool, nodes, have, &out); err != nil {
+	if err := s.linkTraces(ctx, actor, p, tool, nodes, have, &out); err != nil {
 		return out, err
 	}
 	s.linkIssues(ctx, p, tool, nodes, have, &out)
@@ -117,7 +112,7 @@ func (s *Service) mapped(ctx context.Context, keys map[string]string) (map[node]
 				number     int
 				issue, crt int32
 			)
-			if err := rows.Scan(&n.id, &n.tool, &issue, &crt, &key, &number); err != nil {
+			if err := rows.Scan(&n.id, &n.tool, &issue, &crt, &n.spec, &key, &number); err != nil {
 				return err
 			}
 			n.issue, n.criterion = int(issue), int(crt)
@@ -182,40 +177,38 @@ func (s *Service) existing(ctx context.Context, nodes map[node]made) (*existing,
 }
 
 // items walks every item of one tool's project the demo made, with the requirement it became.
-func items(p Plan, tool string, nodes map[node]made, visit func(pr Project, it Item, m made)) {
+func items(p Plan, tool string, nodes map[node]made, visit func(it Item, m made)) {
 	for _, pr := range p.Projects {
 		if pr.Tool != tool {
 			continue
 		}
-		if m, ok := nodes[node{tool: pr.Tool}]; ok {
-			visit(pr, pr.About, m)
-		}
 		if pr.Architecture != nil {
 			for i, it := range pr.Architecture.Items {
 				if m, ok := nodes[node{tool: pr.Tool, criterion: i + 1}]; ok {
-					visit(pr, it, m)
+					visit(it, m)
 				}
 			}
 		}
 		for _, sec := range pr.Sections {
 			for _, it := range sec.Items {
-				if m, ok := nodes[node{tool: pr.Tool, issue: it.Issue}]; ok {
-					visit(pr, it, m)
+				if m, ok := nodes[node{tool: pr.Tool, spec: it.ID}]; ok {
+					visit(it, m)
 				}
 			}
 		}
 	}
 }
 
-func (s *Service) linkDependencies(ctx context.Context, actor uuid.UUID, p Plan, tool string, nodes map[node]made, have *existing, out *Linked) error {
+// linkTraces links each item to the items its file names, within its project.
+func (s *Service) linkTraces(ctx context.Context, actor uuid.UUID, p Plan, tool string, nodes map[node]made, have *existing, out *Linked) error {
 	var failed error
-	items(p, tool, nodes, func(_ Project, it Item, from made) {
-		for _, dep := range it.DependsOn {
-			to, ok := nodes[node{tool: dep.Tool, issue: dep.Number}]
+	items(p, tool, nodes, func(it Item, from made) {
+		for _, tr := range it.Traces {
+			to, ok := nodes[node{tool: tool, spec: tr.To}]
 			if failed != nil || !ok || have.traces[[2]uuid.UUID{from.id, to.id}] {
 				continue
 			}
-			_, _, err := s.trace.Link(ctx, actor, from.key, trace.LinkInput{TypeKey: dependsType, OtherKey: to.key})
+			_, _, err := s.trace.Link(ctx, actor, from.key, trace.LinkInput{TypeKey: tr.Type, OtherKey: to.key})
 			var refused *trace.FieldError
 			switch {
 			case err == nil:
@@ -224,7 +217,7 @@ func (s *Service) linkDependencies(ctx context.Context, actor uuid.UUID, p Plan,
 			case errors.As(err, &refused):
 				out.Skipped++
 			default:
-				failed = err
+				failed = fmt.Errorf("the link from %s to %s: %w", it.ID, tr.To, err)
 			}
 		}
 	})
@@ -269,28 +262,26 @@ func (pt *partner) note(out *Linked) {
 func (s *Service) linkIssues(ctx context.Context, p Plan, tool string, nodes map[node]made, have *existing, out *Linked) {
 	pt := &partner{name: "Armature", what: "issues"}
 	defer pt.note(out)
-	items(p, tool, nodes, func(pr Project, it Item, m made) {
-		if it.Issue == 0 {
-			return
-		}
-		key := Target{Tool: pr.Tool, Number: it.Issue}.IssueKey()
-		if have.issues[issueLink{m.id, key}] {
-			return
-		}
-		if s.armature == nil || pt.stopped != "" {
-			out.Skipped++
-			return
-		}
-		_, _, err := s.armature.Link(ctx, m.key, armature.LinkInput{IssueKey: key, Relation: armature.Implements})
-		switch {
-		case err == nil:
-			out.Links++
-		case errors.Is(err, armature.ErrLinkExists):
-		case pt.refused(err, armature.ErrNotConfigured, armature.ErrNotConnected, armature.ErrRejected, armature.ErrUnreachable, armature.ErrReadOnlyToken):
-			out.Skipped++
-		default:
-			pt.missing++
-			out.Skipped++
+	items(p, tool, nodes, func(it Item, m made) {
+		for _, key := range it.Issues {
+			if have.issues[issueLink{m.id, key}] {
+				continue
+			}
+			if s.armature == nil || pt.stopped != "" {
+				out.Skipped++
+				continue
+			}
+			_, _, err := s.armature.Link(ctx, m.key, armature.LinkInput{IssueKey: key, Relation: armature.Implements})
+			switch {
+			case err == nil:
+				out.Links++
+			case errors.Is(err, armature.ErrLinkExists):
+			case pt.refused(err, armature.ErrNotConfigured, armature.ErrNotConnected, armature.ErrRejected, armature.ErrUnreachable, armature.ErrReadOnlyToken):
+				out.Skipped++
+			default:
+				pt.missing++
+				out.Skipped++
+			}
 		}
 	})
 }
@@ -299,7 +290,7 @@ func (s *Service) linkPages(ctx context.Context, p Plan, tool string, nodes map[
 	pt := &partner{name: "Stator", what: "pages"}
 	defer pt.note(out)
 	pages := map[string]uuid.UUID{}
-	items(p, tool, nodes, func(_ Project, it Item, m made) {
+	items(p, tool, nodes, func(it Item, m made) {
 		for _, pg := range it.Pages {
 			if s.stator == nil || pt.stopped != "" {
 				out.Skipped++
@@ -338,19 +329,4 @@ func (s *Service) linkPages(ctx context.Context, p Plan, tool string, nodes map[
 			}
 		}
 	})
-}
-
-// Baseline takes a baseline of each project, named after the snapshot; one taken before stays.
-func (s *Service) Baseline(ctx context.Context, actor uuid.UUID, p Plan, keys map[string]string) error {
-	for _, pr := range p.Projects {
-		key := keys[pr.Tool]
-		if key == "" {
-			continue
-		}
-		in := baseline.Input{Name: "Snapshot " + p.Taken, Description: "The suite demo as its snapshot of " + p.Taken + " made it."}
-		if _, _, err := s.baselines.Take(ctx, actor, key, in); err != nil && !errors.Is(err, baseline.ErrNameTaken) {
-			return fmt.Errorf("the baseline of %s: %w", key, err)
-		}
-	}
-	return nil
 }

@@ -184,7 +184,7 @@ func run() error {
 		Installation:    installation.NewService(cluster),
 		Themes:          theme.NewService(cluster, store),
 		Projects:        projects,
-		Demo:            demo.NewService(cluster, projects, requirements, links, baselines, armatures, stators),
+		Demo:            demo.NewService(cluster, projects, requirements, links, baselines, nil, armatures, stators),
 		Perms:           perm.NewService(cluster),
 		Requirements:    requirements,
 		Search:          finder,

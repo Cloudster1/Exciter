@@ -1,88 +1,16 @@
 package demo
 
 import (
-	"encoding/json"
-	"fmt"
+	"errors"
 	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"unicode"
 
-	"github.com/cloudster1/exciter/backend/internal/document"
-	"github.com/cloudster1/exciter/backend/internal/markdown"
+	"github.com/cloudster1/exciter/backend/internal/attribute"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 )
-
-const featureBody = `## User story
-
-As a tester, I want a story, so that it parses.
-
-## Acceptance criteria
-
-- [x] **Adding it:** an administrator adds the demo once.
-- [ ] A criterion without a lead that runs on for a long while, well past the length a title should have, so that it is cut at a word and ends in three dots
-  - it nests a point
-- [ ] ` + "`code`" + ` in a criterion
-
-## Tests
-
-- [ ] Not a criterion.
-
-## Depends on
-
-- #12
-- Cloudster1/Armature#300
-- praetorianer777/Stator#457
-`
-
-func TestParseReadsTheFeatureTemplate(t *testing.T) {
-	p := Parse(featureBody)
-	if p.Story != "As a tester, I want a story, so that it parses." {
-		t.Errorf("story %q", p.Story)
-	}
-	if len(p.Criteria) != 3 {
-		t.Fatalf("got %d criteria, want 3: %+v", len(p.Criteria), p.Criteria)
-	}
-	if c := p.Criteria[0]; c.Title != "Adding it" || !strings.HasPrefix(c.Text, "**Adding it:**") {
-		t.Errorf("a bold lead is the title and stays in the text: %+v", c)
-	}
-	if c := p.Criteria[1]; !strings.HasSuffix(c.Title, "...") || len(c.Title) > maxTitle || !strings.Contains(c.Text, "\n- it nests a point") {
-		t.Errorf("a long criterion is cut for its title and keeps its nested lines: %+v", c)
-	}
-	if c := p.Criteria[2]; c.Title != "code in a criterion" {
-		t.Errorf("code marks leave the title: %q", c.Title)
-	}
-	want := []Ref{{"", 12}, {"Cloudster1/Armature", 300}, {"praetorianer777/Stator", 457}}
-	if !slices.Equal(p.DependsOn, want) {
-		t.Errorf("depends on %v, want %v", p.DependsOn, want)
-	}
-}
-
-func TestParseReadsDependenciesOnALineOfTheirOwn(t *testing.T) {
-	p := Parse("## User story\n\nAs a tracker.\n\n## Tests\n\n- one\n\nDepends on: #210, #211, Cloudster1/Exciter#59.\n")
-	want := []Ref{{"", 210}, {"", 211}, {"Cloudster1/Exciter", 59}}
-	if !slices.Equal(p.DependsOn, want) {
-		t.Errorf("depends on %v, want %v", p.DependsOn, want)
-	}
-	if p := Parse("## User story\n\nIt says that \"Depends on\" references become links, part of #9.\n"); len(p.DependsOn) != 0 {
-		t.Errorf("a sentence that mentions dependencies is not one: %v", p.DependsOn)
-	}
-}
-
-func fixture() Snapshot {
-	return Snapshot{Tools: []Tool{
-		{Repo: "Cloudster1/Armature", Key: "ARM", Name: "Armature", Taken: "2026-10-19", Issues: []Issue{
-			{Number: 300, Title: "Suite demo issues", Closed: false, URL: "https://github.com/Cloudster1/Armature/issues/300",
-				Body: "## User story\n\nAs a tracker user.\n\nDepends on: Cloudster1/Exciter#12, Cloudster1/Rotor#1."},
-		}},
-		{Repo: "Cloudster1/Exciter", Key: "EXC", Name: "Exciter", Taken: "2026-10-20", Issues: []Issue{
-			{Number: 14, Title: "Backlog item", Milestone: "Backlog", Body: "## User story\n\nAs a later.\n"},
-			{Number: 12, Title: "Later milestone", Milestone: "M10 Authoring quality", Closed: true, Body: "## User story\n\nAs a writer.\n"},
-			{Number: 270, Title: "Suite demo", Milestone: "M2 Armature integration", Body: featureBody},
-			{Number: 13, Title: "No milestone", Body: "## User story\n\nAs nobody.\n"},
-		}},
-	}}
-}
 
 const architectureFile = "commit: abc123\nsource: docs/architecture.md\n\nHow it is built.\n\n## Components\n\nThe parts.\n\n" +
 	"```plantuml\n@startuml\ntitle Components\n## inside the fence\n[A] --> [B]\n@enduml\n```\n\n## Signing in\n\nThe flow.\n\n" +
@@ -119,8 +47,239 @@ func TestParseArchitectureReadsAViewUnderEachHeading(t *testing.T) {
 	}
 }
 
+const boardsFile = "# Functional requirements / Boards\n\nHow work moves across a board.\n\n" +
+	"### FR-BRD-1 Move an issue by dragging its card\ntype: Functional\npriority: must\nverification: Test\ncomponent: Boards\n" +
+	"refines: SN-3\nrelates: FR-BRD-2\nissues: ARM-112, ARM-140\nguide: boards\n\n" +
+	"When a person drags a card, Armature shall move the issue.\n\n| Column | Status |\n|---|---|\n| Done | Done |\n\n" +
+	"```text\n### not a heading\n\nRationale: not one either\n```\n\nRationale: Moving a card is how a team reports progress.\n\n" +
+	"## Swimlanes\n\nLanes split columns.\n\n" +
+	"### FR-BRD-2 Configure swimlanes\ntype: Functional\npriority: should\nverification: Inspection\nguide: ../exciter/traceability\n\n" +
+	"Armature shall keep each board's lanes apart.\n"
+
+const testsFile = "# Test specification / Boards\n\n" +
+	"### TC-BRD-1 Drag a card\ntype: Test case\nverifies: FR-BRD-1, FR-BRD-2\nautomated: yes\nresult: failed\nnote: Fails as in ARM-345.\n\n" +
+	"Preconditions: A scrum project with a board\nwhose columns map to statuses.\n\n" +
+	"| Action | Expected |\n|---|---|\n| Drag the card to `In progress`. | The card stays there. |\n| Reload \\| look. | |\n\n" +
+	"Parameters: column = In progress, Done; who = alice, bob\n"
+
+func TestParseSpecReadsSectionsItemsAndTestCases(t *testing.T) {
+	f, err := ParseSpec("spec/armature/10-boards.md", boardsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if f.Name != "10-boards.md" || len(f.Sections) != 2 {
+		t.Fatalf("the file reads %+v", f)
+	}
+	head, lanes := f.Sections[0], f.Sections[1]
+	if !slices.Equal(head.Path, []string{"Functional requirements", "Boards"}) || head.Intro != "How work moves across a board." {
+		t.Errorf("the head section is %v %q", head.Path, head.Intro)
+	}
+	if !slices.Equal(lanes.Path, []string{"Functional requirements", "Boards", "Swimlanes"}) || lanes.Intro != "Lanes split columns." {
+		t.Errorf("a subsection sits inside the head: %v %q", lanes.Path, lanes.Intro)
+	}
+	it := head.Items[0]
+	if it.ID != "FR-BRD-1" || it.Title != "Move an issue by dragging its card" || it.Type != TypeFunctional || it.Priority != "must" ||
+		it.Verification != "Test" || it.Component != "Boards" || it.Guide != "boards" || it.Line != 5 {
+		t.Errorf("the fields read %+v", it)
+	}
+	if !slices.Equal(it.Refines, []string{"SN-3"}) || !slices.Equal(it.Relates, []string{"FR-BRD-2"}) || !slices.Equal(it.Issues, []string{"ARM-112", "ARM-140"}) {
+		t.Errorf("the links read %v %v %v", it.Refines, it.Relates, it.Issues)
+	}
+	if !strings.Contains(it.Statement, "| Column | Status |") || !strings.Contains(it.Statement, "### not a heading") || len(it.Steps) != 0 {
+		t.Errorf("a requirement's table and fence stay in its statement: %q", it.Statement)
+	}
+	if it.Rationale != "Moving a card is how a team reports progress." {
+		t.Errorf("the rationale is %q", it.Rationale)
+	}
+
+	f, err = ParseSpec("spec/armature/80-tests-boards.md", testsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tc := f.Sections[0].Items[0]
+	if !tc.IsTestCase() || tc.IsRequirement() || tc.Result != "failed" || tc.Note != "Fails as in ARM-345." || tc.Automated != "yes" {
+		t.Errorf("the test case reads %+v", tc)
+	}
+	if tc.Preconditions != "A scrum project with a board\nwhose columns map to statuses." || tc.Statement != "" {
+		t.Errorf("the preconditions are %q and the statement %q", tc.Preconditions, tc.Statement)
+	}
+	want := []SpecStep{{"Drag the card to `In progress`.", "The card stays there."}, {"Reload | look.", ""}}
+	if !slices.Equal(tc.Steps, want) {
+		t.Errorf("the steps are %+v", tc.Steps)
+	}
+	if len(tc.Parameters) != 2 || tc.Parameters[0].Name != "column" || !slices.Equal(tc.Parameters[1].Values, []string{"alice", "bob"}) {
+		t.Errorf("the parameters are %+v", tc.Parameters)
+	}
+}
+
+func TestParseSpecSaysWhereAndWhatToFix(t *testing.T) {
+	for name, c := range map[string]struct{ md, says string }{
+		"no path":           {"Text.\n", ":1: the first line is the section path"},
+		"empty title":       {"# A /  / B\n", "empty title"},
+		"a second path":     {"# A\n\n# B\n", ":3: only the first line"},
+		"no ID":             {"# A\n\n### move a card\ntype: Functional\n", "which is no ID"},
+		"unknown field":     {"# A\n\n### FR-1 T\ntype: Functional\nowner: me\n", `:5: FR-1: "owner: me" is not a field`},
+		"field twice":       {"# A\n\n### FR-1 T\ntype: Functional\ntype: Functional\n", "type is given twice"},
+		"bad priority":      {"# A\n\n### FR-1 T\ntype: Functional\npriority: high\n", `priority is "high". Write one of must`},
+		"no type":           {"# A\n\n### FR-1 T\npriority: must\n\nIt shall.\n", "there is no type"},
+		"no verification":   {"# A\n\n### FR-1 T\ntype: Functional\npriority: must\n\nIt shall.\n", "says how it is verified"},
+		"no statement":      {"# A\n\n### SN-1 T\ntype: Stakeholder need\npriority: must\n", "there is no statement"},
+		"result on a need":  {"# A\n\n### SN-1 T\ntype: Stakeholder need\npriority: must\nresult: passed\n\nA need.\n", "only a test case takes `result:`"},
+		"bad issue":         {"# A\n\n### SN-1 T\ntype: Stakeholder need\npriority: must\nissues: #12\n\nA need.\n", `issues names "#12"`},
+		"bad guide":         {"# A\n\n### SN-1 T\ntype: Stakeholder need\npriority: must\nguide: Boards Page\n\nA need.\n", "lower case"},
+		"other tool":        {"# A\n\n### SN-1 T\ntype: Stakeholder need\npriority: must\nguide: ../jira/boards\n\nA need.\n", "../<tool>/<name>"},
+		"rationale early":   {"# A\n\n### SN-1 T\ntype: Stakeholder need\npriority: must\n\nRationale: why.\n\nA need.\n", "not the last paragraph"},
+		"open fence":        {"# A\n\n```\ncode\n", "fence is left open"},
+		"case without":      {"# A\n\n### TC-1 T\ntype: Test case\n", "says what it verifies"},
+		"no steps":          {"# A\n\n### TC-1 T\ntype: Test case\nverifies: FR-1\n", "a test case has steps"},
+		"other columns":     {"# A\n\n### TC-1 T\ntype: Test case\nverifies: FR-1\n\n| Do | See |\n|---|---|\n| a | b |\n", "the steps are not a table"},
+		"three cells":       {"# A\n\n### TC-1 T\ntype: Test case\nverifies: FR-1\n\n| Action | Expected |\n|---|---|\n| a | b | c |\n", "step 1 has 3 cells"},
+		"uneven parameters": {"# A\n\n### TC-1 T\ntype: Test case\nverifies: FR-1\n\n| Action | Expected |\n|---|---|\n| a | b |\n\nParameters: x = 1, 2; y = 3\n", "the parameter y has 1 values"},
+	} {
+		_, err := ParseSpec("spec/exciter/10-x.md", c.md)
+		var se *SpecError
+		if err == nil || !errors.As(err, &se) || !strings.Contains(err.Error(), c.says) || !strings.HasPrefix(err.Error(), "spec/exciter/10-x.md:") {
+			t.Errorf("%s: got %v, want it to say %q", name, err, c.says)
+		}
+	}
+}
+
+func TestGuideLabelNamesThePageOfItsTool(t *testing.T) {
+	for guide, want := range map[string]string{"boards": "demo-arm-guide-boards", "../exciter/links-to-armature": "demo-exc-guide-links-to-armature",
+		"../rotor/concepts": "demo-rot-guide-concepts"} {
+		if got, _, err := GuideLabel("ARM", guide); err != nil || got != want {
+			t.Errorf("%s labels %q (%v), want %q", guide, got, err, want)
+		}
+	}
+}
+
+// specFixture is two tools' files as Lint reads them, with every mistake it should find.
+var specFixture = fstest.MapFS{
+	"spec/armature/02-needs.md": {Data: []byte("# Stakeholder needs\n\n### SN-1 A need\ntype: Stakeholder need\npriority: must\n\nA lead needs it.\n")},
+	"spec/armature/10-boards.md": {Data: []byte("# Functional requirements / Boards\n\n" +
+		"### FR-1 Covered\ntype: Functional\npriority: must\nverification: Test\nrefines: SN-1\nissues: ARM-1\n\nIt shall.\n\n" +
+		"### FR-2 Unverified\ntype: Functional\npriority: must\nverification: Test\nrefines: SN-9\nissues: ARM-2\n\nIt shall too.\n\n" +
+		"### FR-1 Twice\ntype: Functional\npriority: must\nverification: Test\n\nAgain.\n")},
+	"spec/armature/80-tests.md": {Data: []byte("# Test specification\n\n" +
+		"### TC-1 A case\ntype: Test case\nverifies: FR-1, TC-2\nresult: blocked\n\n| Action | Expected |\n|---|---|\n| a | b |\n\n" +
+		"### TC-2 Another\ntype: Test case\nverifies: SN-1\nresult: passed\n\n| Action | Expected |\n|---|---|\n| <b>bold</b> | b |\n")},
+	"spec/exciter/01-bad.md": {Data: []byte("No heading.\n")},
+}
+
+func TestLintSaysWhichFileAndIDToFix(t *testing.T) {
+	snap := Snapshot{Tools: []Tool{
+		{Key: "ARM", Name: "Armature", Issues: []Issue{{Number: 1, Closed: true}}},
+		{Key: "EXC", Name: "Exciter"},
+	}}
+	var got []string
+	for _, err := range Lint(specFixture, snap) {
+		got = append(got, err.Error())
+	}
+	all := strings.Join(got, "\n")
+	for _, want := range []string{
+		"spec/armature/10-boards.md:21: FR-1: the ID is taken by spec/armature/10-boards.md line 3",
+		"spec/armature/10-boards.md:12: FR-2: refines names SN-9, which no file of armature defines",
+		"spec/armature/10-boards.md:12: FR-2: issues names ARM-2, which the snapshot does not hold",
+		"spec/armature/10-boards.md:12: FR-2: no test case verifies this requirement",
+		"spec/armature/80-tests.md:3: TC-1: verifies names TC-2, which is a test case",
+		"spec/armature/80-tests.md:3: TC-1: the result is blocked and says nothing about it",
+		"spec/armature/80-tests.md:12: TC-2: Exciter refuses the step 1's action: step 1's actionMarkdown: A requirement holds no HTML; write it as Markdown instead. Write",
+		"spec/exciter/01-bad.md:1: the first line is the section path",
+	} {
+		if !strings.Contains(all, want) {
+			t.Errorf("the lint does not say %q; it says\n%s", want, all)
+		}
+	}
+	if strings.Contains(all, "FR-1: no test case") || strings.Contains(all, "SN-1: no test case") {
+		t.Errorf("a verified requirement or a need is flagged:\n%s", all)
+	}
+	if len(got) != 8 {
+		t.Errorf("the lint found %d mistakes, want 8:\n%s", len(got), all)
+	}
+}
+
+// The specifications this build carries are written by hand, so every mistake in them fails here, each saying which
+// file and ID to fix, rather than when an administrator adds the demo.
+func TestTheShippedSpecificationsPassTheLint(t *testing.T) {
+	for _, err := range LintEmbedded() {
+		t.Error(err)
+	}
+	s, err := Embedded()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tool := range s.Tools {
+		if len(tool.Spec) == 0 {
+			t.Errorf("%s has no specification in spec/%s", tool.Name, toolDirs[tool.Key])
+		}
+	}
+}
+
+func specTool(t *testing.T) Tool {
+	t.Helper()
+	tool := Tool{Repo: "Cloudster1/Armature", Key: "ARM", Name: "Armature", Commit: "abc", Taken: "2026-10-20",
+		Issues: []Issue{{Number: 112, Closed: true}, {Number: 140, Closed: true}}}
+	for name, md := range map[string]string{"spec/armature/10-boards.md": boardsFile, "spec/armature/80-tests-boards.md": testsFile} {
+		f, err := ParseSpec(name, md)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tool.Spec = append(tool.Spec, f)
+	}
+	slices.SortFunc(tool.Spec, func(a, b SpecFile) int { return strings.Compare(a.Name, b.Name) })
+	return tool
+}
+
+func TestMakePlansTheSpecificationWithStatusesTracesAndPages(t *testing.T) {
+	tool := specTool(t)
+	p := Make(Snapshot{Tools: []Tool{tool, {Key: "EXC", Name: "Exciter", Taken: "2026-10-21"}}})
+	if p.Taken != "2026-10-21" || len(p.Projects) != 2 {
+		t.Fatalf("the plan is %+v", p)
+	}
+	arm := p.Projects[0]
+	if arm.Commit != "abc" || len(arm.Sections) != 3 {
+		t.Fatalf("the project is %+v", arm)
+	}
+	moved := arm.Sections[0].Items[0]
+	// Its issues are closed, and its one test case failed.
+	if moved.Status != StatusImplemented || moved.Priority != "must" || moved.Verification != "Test" || moved.Component != "Boards" {
+		t.Errorf("the requirement is %+v", moved)
+	}
+	if want := []Trace{{"refines", "SN-3"}, {"relates", "FR-BRD-2"}}; !slices.Equal(moved.Traces, want) {
+		t.Errorf("traces %v, want %v", moved.Traces, want)
+	}
+	if !slices.Equal(moved.Issues, []string{"ARM-112", "ARM-140"}) {
+		t.Errorf("issues %v", moved.Issues)
+	}
+	if want := []Page{{"demo-arm-guide-boards", Describes}}; !slices.Equal(moved.Pages, want) {
+		t.Errorf("pages %v, want %v", moved.Pages, want)
+	}
+	if lanes := arm.Sections[1].Items[0]; lanes.Status != StatusApproved || !slices.Equal(lanes.Pages, []Page{{"demo-exc-guide-traceability", Describes}}) {
+		t.Errorf("a requirement without issues is approved, with another tool's page: %+v", lanes)
+	}
+	tc := arm.Sections[2].Items[0]
+	if tc.Status != StatusApproved || tc.TestCase == nil || len(tc.TestCase.Steps) != 2 || tc.TestCase.Iterations() != 2 || tc.Automated == nil || !*tc.Automated {
+		t.Fatalf("the test case is %+v", tc)
+	}
+	if s := tc.TestCase.Steps[1]; *s.ActionMarkdown != "Reload | look." || s.ExpectedMarkdown != nil {
+		t.Errorf("a step without an expected result expects nothing: %+v", s)
+	}
+	if want := []Trace{{"verifies", "FR-BRD-1"}, {"verifies", "FR-BRD-2"}}; !slices.Equal(tc.Traces, want) {
+		t.Errorf("the test case traces %v", tc.Traces)
+	}
+
+	tool.Spec[1].Sections[0].Items[0].Result = resultPassed
+	if got := Make(Snapshot{Tools: []Tool{tool}}).Projects[0].Sections[0].Items[0].Status; got != StatusVerified {
+		t.Errorf("implemented and passed is %s, want Verified", got)
+	}
+	tool.Issues[1].Closed = false
+	if got := Make(Snapshot{Tools: []Tool{tool}}).Projects[0].Sections[0].Items[0].Status; got != StatusApproved {
+		t.Errorf("an open issue leaves it %s, want Approved", got)
+	}
+}
+
 func TestMakeFilesTheArchitectureWithItsSource(t *testing.T) {
-	s := fixture()
+	s := Snapshot{Tools: []Tool{{Repo: "Cloudster1/Armature", Key: "ARM", Name: "Armature"}, {Repo: "Cloudster1/Exciter", Key: "EXC", Name: "Exciter"}}}
 	a, err := ParseArchitecture(architectureFile)
 	if err != nil {
 		t.Fatal(err)
@@ -131,12 +290,12 @@ func TestMakeFilesTheArchitectureWithItsSource(t *testing.T) {
 		t.Errorf("a tool without drawings has no architecture section: %+v", p.Projects[0].Architecture)
 	}
 	sec := p.Projects[1].Architecture
-	if sec == nil || sec.Title != SectionArchitecture || sec.Intro != "How it is built." || len(sec.Items) != 2 {
+	if sec == nil || sec.Title() != SectionArchitecture || sec.Intro != "How it is built." || len(sec.Items) != 2 {
 		t.Fatalf("the section is %+v", sec)
 	}
 	view := sec.Items[1]
-	if view.Title != "Signing in" || !view.Approved || view.Issue != 0 {
-		t.Errorf("a view is an approved requirement of no issue: %+v", view)
+	if view.Title != "Signing in" || view.Status != StatusApproved || view.ID != "" {
+		t.Errorf("a view is an approved requirement of no ID: %+v", view)
 	}
 	if want := []Page{{"demo-exc-docs-architecture", Describes}}; !slices.Equal(view.Pages, want) {
 		t.Errorf("pages %v, want %v", view.Pages, want)
@@ -146,118 +305,67 @@ func TestMakeFilesTheArchitectureWithItsSource(t *testing.T) {
 	}
 }
 
-func TestMakeOrdersMilestonesAndLinks(t *testing.T) {
-	p := Make(fixture())
-	if p.Taken != "2026-10-20" {
-		t.Errorf("taken %q, want the latest", p.Taken)
-	}
-	exc := p.Projects[1]
-	var titles []string
-	for _, s := range exc.Sections {
-		titles = append(titles, s.Title)
-	}
-	if want := []string{"M2 Armature integration", "M10 Authoring quality", Backlog, WithoutMilestone}; !slices.Equal(titles, want) {
-		t.Errorf("sections %v, want %v", titles, want)
-	}
-	demo := exc.Sections[0].Items[0]
-	if demo.Approved || len(demo.Children) != 3 || demo.Release != "M2 Armature integration" {
-		t.Errorf("an open issue is a draft with its criteria: %+v", demo)
-	}
-	// #12 is known, Armature#300 is in the snapshot, Stator is not.
-	if want := []Target{{"EXC", 12}, {"ARM", 300}}; !slices.Equal(demo.DependsOn, want) {
-		t.Errorf("depends on %v, want %v", demo.DependsOn, want)
-	}
-	if want := []Page{{"demo-exc-docs-api-contract-m2", Specifies}}; !slices.Equal(demo.Pages, want) {
-		t.Errorf("pages %v, want %v", demo.Pages, want)
-	}
-	if later := exc.Sections[1].Items[0]; !later.Approved {
-		t.Errorf("a closed issue is approved: %+v", later)
-	}
-	if backlog := exc.Sections[2].Items[0]; len(backlog.Pages) != 0 {
-		t.Errorf("the backlog has no contract: %v", backlog.Pages)
-	}
-	arm := p.Projects[0]
-	if want := []Target{{"EXC", 12}}; !slices.Equal(arm.Sections[0].Items[0].DependsOn, want) {
-		t.Errorf("a repository outside the demo is left out: %v", arm.Sections[0].Items[0].DependsOn)
-	}
-	if want := []Page{{"demo-arm-readme", Describes}, {"demo-arm-docs-architecture", Describes}}; !slices.Equal(arm.About.Pages, want) {
-		t.Errorf("about pages %v, want %v", arm.About.Pages, want)
-	}
-	if key := (Target{"EXC", 261}).IssueKey(); key != "EXC-261" {
-		t.Errorf("issue key %q", key)
-	}
-}
-
-func TestARunMakesEveryProjectBeforeItLinksAny(t *testing.T) {
-	p := Make(fixture())
+func TestARunMakesEveryProjectBeforeItLinksAnyAndTestsLast(t *testing.T) {
+	p := Make(Snapshot{Tools: []Tool{specTool(t), {Key: "EXC", Name: "Exciter"}}})
 	build := stepsOf(p, KindBuild)
-	// Armature: its project and one section; Exciter: its project and four; a link step each; the baselines.
+	// Armature: its project and three sections; Exciter: its project alone; a link step each; a test run each.
 	want := []step{
-		{stepProject, 0, 0}, {stepSection, 0, 0},
-		{stepProject, 1, 0}, {stepSection, 1, 0}, {stepSection, 1, 1}, {stepSection, 1, 2}, {stepSection, 1, 3},
-		{stepLinks, 0, 0}, {stepLinks, 1, 0}, {stepBaseline, 0, 0},
+		{stepProject, 0, 0}, {stepSection, 0, 0}, {stepSection, 0, 1}, {stepSection, 0, 2},
+		{stepProject, 1, 0},
+		{stepLinks, 0, 0}, {stepLinks, 1, 0}, {stepTests, 0, 0}, {stepTests, 1, 0},
 	}
 	if !slices.Equal(build, want) {
 		t.Errorf("a build runs %v, want %v", build, want)
 	}
-	if links := stepsOf(p, KindLinks); !slices.Equal(links, want[len(want)-3:]) || StepCount(p, KindLinks) != 3 {
+	if links := stepsOf(p, KindLinks); !slices.Equal(links, want[len(want)-4:]) || StepCount(p, KindLinks) != 4 {
 		t.Errorf("linking again runs %v", links)
 	}
 }
 
-func TestCleanEscapesPlaceholdersOutsideCode(t *testing.T) {
-	got := Clean("About <tool>, `<kept>` and ![logo](x.png) a < b")
-	if want := "About \\<tool>, `<kept>` and  a < b"; got != want {
-		t.Errorf("got %q, want %q", got, want)
+func TestTheBlueprintAddsNeedsAndTestsToTheSoftwareTemplate(t *testing.T) {
+	b := Blueprint()
+	types := map[string]string{}
+	for _, ts := range b.TypeSpecs {
+		types[ts.Name] = ts.Role
 	}
-	root, err := markdown.Convert(got, markdown.Resolve{})
-	if err != nil {
-		t.Fatal(err)
+	for _, name := range itemTypes {
+		if _, ok := types[name]; !ok {
+			t.Errorf("the blueprint has no type %s: %v", name, types)
+		}
 	}
-	if text := document.PlainText(root); !strings.Contains(text, "About <tool>, <kept>") {
-		t.Errorf("the reader sees %q", text)
+	if types[TypeTestCase] != string(attribute.RoleTestCase) || b.TypeSpecs[0].Name != TypeFunctional || len(b.Sections) != 0 {
+		t.Errorf("the blueprint is %+v", b)
+	}
+	var automated []string
+	for _, a := range b.AttributeSpecs {
+		if a.Name == attributeAutomated {
+			automated = a.Types
+		}
+	}
+	if !slices.Contains(automated, TypeTestCase) || slices.Contains(automated, TypeFunctional) {
+		t.Errorf("Automated shows on %v", automated)
 	}
 }
 
-// Every statement of the snapshot this build carries goes in as a requirement's would, so a snapshot taken again
-// that brings something a statement refuses fails here, not when an administrator adds the demo.
-func TestTheEmbeddedSnapshotPlansStatementsThatAreTaken(t *testing.T) {
-	s, err := Embedded()
+// Every view of the architectures this build carries goes in as a requirement's would, so a drawing a statement
+// refuses fails here, not when an administrator adds the demo.
+func TestTheEmbeddedArchitecturesAreTaken(t *testing.T) {
+	s, err := embeddedIssues()
 	if err != nil {
 		t.Fatal(err)
 	}
 	p := Make(s)
-	check := func(raw json.RawMessage) error { _, err := document.Parse(raw); return err }
 	take := func(where, field, md string) {
-		if _, err := requirement.FromMarkdown(field, &md, nil, markdown.Resolve{}, check); err != nil {
-			t.Errorf("%s: %s refused: %v", where, field, err)
+		if errs := lintMarkdown(where, 0, "", field, md); len(errs) > 0 {
+			t.Error(errs[0])
 		}
 	}
-	items, children := 0, 0
 	for _, pr := range p.Projects {
-		all := []Item{pr.About}
 		checkArchitecture(t, pr, take)
-		for _, sec := range pr.Sections {
-			all = append(all, sec.Items...)
-		}
-		for _, it := range all {
-			where := fmt.Sprintf("%s#%d", pr.Repo, it.Issue)
-			if it.Title == "" || len([]rune(it.Title)) > requirement.MaxTitleLength {
-				t.Errorf("%s: title %q", where, it.Title)
-			}
-			take(where, "statement", it.Statement)
-			take(where, "rationale", it.Rationale)
-			for i, c := range it.Children {
-				if c.Title == "" {
-					t.Errorf("%s criterion %d has no title", where, i+1)
-				}
-				take(fmt.Sprintf("%s criterion %d", where, i+1), "statement", c.Statement)
-			}
-			items++
-			children += len(it.Children)
-		}
 	}
-	t.Logf("%d requirements with %d criteria", items, children)
+	if len(p.Projects) != len(Keys) {
+		t.Errorf("the snapshot holds %d tools, want %d", len(p.Projects), len(Keys))
+	}
 }
 
 // minViews is what every tool's architecture draws at least: its parts, its deployment, signing in and the suite.
