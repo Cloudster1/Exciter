@@ -47,7 +47,7 @@ sentence that says what to do, as in M1.
   - `review.MaxSessionParticipants` = 50: people and groups one session
     names.
   - `review.MaxSessionApprovers` = 50: people a session's approvers reach,
-    groups counted by their members.
+    groups counted by their members who may decide.
   - `review.MaxSessionRounds` = 20.
   - `review.MaxSessionTitleLength` = 100, and the description
     `review.MaxCommentLength` as a review's comment.
@@ -345,7 +345,7 @@ what it reads already.
 | `POST /projects/{projectKey}/review-sessions` | edit | 201 `{session}`; 409 `project_archived`; 422 |
 | `GET /review-sessions/{sessionID}` | view | `{session}` |
 | `PATCH /review-sessions/{sessionID}` | the moderator | `{session}`; 409 `session_closed`; 422 |
-| `POST /review-sessions/{sessionID}/rounds` | the moderator | `{session}`; 409 `session_closed`, `nothing_revised`, `too_many_rounds` |
+| `POST /review-sessions/{sessionID}/rounds` | the moderator | `{session}`; 409 `session_closed`, `nothing_revised`, `approvers_reach_nobody`, `too_many_rounds` |
 | `POST /review-sessions/{sessionID}/close` | the moderator | `{session}`; 409 `session_closed`, `baseline_name_taken`; 422 |
 | `GET /review-sessions/{sessionID}/report` | view | `{report}` |
 | `GET /review-sessions/{sessionID}/report.docx` | view | the report as Word |
@@ -388,10 +388,17 @@ what it reads already.
     lacks the right its role asks for. Membership changes, so a decision
     on a session's review asks for the approve right again when it is
     made (`review_decidable`).
+  - Approvers who reach nobody who may decide a requirement in scope are
+    422 on `participants`: an empty group, a group whose members are all
+    deactivated, or only the author of a requirement's current revision,
+    whom the sentence names with the requirement. Who may decide is who
+    `review_decidable` would let: an active account with a role and the
+    approve right in the project, never the revision's author.
+    `review_session_pin` refuses the same straight through SQL.
 - **The quorum** is the share of approvers each requirement needs, in
   percent, 1 to 100, 100 by default. Each review requires the ceiling of
-  that share of the people the approvers reach when the session opens,
-  at least 1, and at most `MaxSessionApprovers`.
+  that share of the people the approvers reach who may decide it when it
+  is pinned, at least 1, and at most `MaxSessionApprovers`.
 - **Each requirement's review is a review of #35.** Its approvers are the
   session's approvers, frozen in `review_subject`, and its `required` the
   quorum's; the type's approval rule does not apply. So a decision, its
@@ -431,7 +438,11 @@ what it reads already.
 - **A new round** takes `{comment}`. Each requirement revised since its
   pin is pinned anew at its current revision, with a new review; the
   others keep their review and its decisions, approved, rejected or still
-  pending. Nothing revised is 409 `nothing_revised`. Each round compares
+  pending. Nothing revised is 409 `nothing_revised`. A requirement the
+  approvers no longer reach anybody to decide, as when a group was
+  emptied or only the author of its new revision is left, is 409
+  `approvers_reach_nobody`, whose sentence names it; nothing is pinned
+  and the session stays in its round. Each round compares
   with the last: the specification with `session=<id>` and
   `changes=round` marks what changed since the revision the previous round
   pinned.

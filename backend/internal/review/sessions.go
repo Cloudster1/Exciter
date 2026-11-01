@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/cloudster1/exciter/backend/internal/audit"
 	"github.com/cloudster1/exciter/backend/internal/baseline"
@@ -46,6 +47,8 @@ var (
 	ErrNothingRevised = errors.New("nothing was revised since the last round")
 	// ErrTooManyRounds refuses a round past MaxSessionRounds.
 	ErrTooManyRounds = errors.New("the session has had every round it takes")
+	// ErrApproversReachNobody refuses pinning a requirement no approver could decide.
+	ErrApproversReachNobody = errors.New("the approvers reach nobody")
 )
 
 // SessionLimits bound a page of sessions.
@@ -238,8 +241,8 @@ func pgxIDs(ctx context.Context, tx db.DBTX, out *[]uuid.UUID, sql string, args 
 	return err
 }
 
-// approversReached counts the people a session's approvers reach, groups by their members.
-func approversReached(ctx context.Context, tx db.DBTX, in []Participant) (int, error) {
+// approversReached counts the people a session's approvers reach who may decide, as the pin counts them.
+func approversReached(ctx context.Context, tx db.DBTX, projectID uuid.UUID, in []Participant) (int, error) {
 	var users, groups []uuid.UUID
 	for _, p := range in {
 		if p.Role != RoleApprover {
@@ -252,11 +255,33 @@ func approversReached(ctx context.Context, tx db.DBTX, in []Participant) (int, e
 		}
 	}
 	var n int
-	err := tx.QueryRow(ctx, `
-		SELECT count(DISTINCT person) FROM (
-			SELECT unnest($1::uuid[]) AS person UNION SELECT m.user_id FROM group_member m WHERE m.group_id = ANY($2)) people`,
-		users, groups).Scan(&n)
+	err := tx.QueryRow(ctx, `SELECT review_approvers_reached($1, $2::uuid[], $3::uuid[], NULL)`, projectID, users, groups).Scan(&n)
 	return n, err
+}
+
+var errApproversReachNobody = &FieldError{Field: "participants",
+	Message: "The approvers reach nobody who may approve: a group counts only its active members. Name a person, or a group with active members, who approves."}
+
+// ApproversError refuses pinning a requirement no approver may decide; Author says only its author was reached.
+type ApproversError struct {
+	Key    string
+	Author bool
+}
+
+func (e *ApproversError) Error() string {
+	return fmt.Sprintf("the approvers reach nobody who may approve %s", e.Key)
+}
+
+func (e *ApproversError) Is(target error) bool { return target == ErrApproversReachNobody }
+
+// opening says what the refusal means to whoever names a session's approvers.
+func (e *ApproversError) opening() *FieldError {
+	if !e.Author {
+		return errApproversReachNobody
+	}
+	return &FieldError{Field: "participants", Message: fmt.Sprintf(
+		"The approvers reach nobody who may approve %s but the author of its current revision, and nobody approves their own. Name another approver too, or leave %s out of the scope.",
+		e.Key, e.Key)}
 }
 
 // OpenSession opens a review session over a scope, pinning each requirement it holds and asking its review of the
@@ -295,8 +320,10 @@ func (s *Service) OpenSession(ctx context.Context, projectKey string, in Session
 		if err := checkParticipants(ctx, tx, p.ID, in.Participants); err != nil {
 			return err
 		}
-		if reached, err := approversReached(ctx, tx, in.Participants); err != nil {
+		if reached, err := approversReached(ctx, tx, p.ID, in.Participants); err != nil {
 			return err
+		} else if reached == 0 {
+			return errApproversReachNobody
 		} else if reached > MaxSessionApprovers {
 			return &FieldError{Field: "participants", Message: fmt.Sprintf("The approvers reach %d people; a session takes at most %d.", reached, MaxSessionApprovers)}
 		}
@@ -342,7 +369,10 @@ func (s *Service) OpenSession(ctx context.Context, projectKey string, in Session
 				return fmt.Errorf("name who takes part: %w", err)
 			}
 		}
-		if err := pin(ctx, tx, actor, id, 1, "", kept); err != nil {
+		var nobody *ApproversError
+		if err := pin(ctx, tx, actor, id, 1, "", kept); errors.As(err, &nobody) {
+			return nobody.opening()
+		} else if err != nil {
 			return err
 		}
 		if err := audit.Write(ctx, tx, audit.Entry{Action: audit.ActionReviewSessionOpened, TargetType: "review_session", TargetID: &id, Actor: actor,
@@ -366,6 +396,10 @@ func pin(ctx context.Context, tx db.DBTX, actor, session uuid.UUID, round int, c
 	}
 	for _, it := range items {
 		if _, err := tx.Exec(ctx, `SELECT review_session_pin($1, $2)`, session, it.id); err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && strings.HasPrefix(pgErr.ConstraintName, "review_session_approvers") {
+				return &ApproversError{Key: it.key, Author: pgErr.ConstraintName == "review_session_approvers_author"}
+			}
 			return fmt.Errorf("pin %s: %w", it.key, err)
 		}
 	}

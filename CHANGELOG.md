@@ -43,6 +43,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A review session whose approvers reach nobody who may decide, such as an
+  empty group, a group whose members are all deactivated, or only the
+  author of a requirement, is refused with a sentence on `participants`
+  that says which, also straight in the database. Before, it opened with
+  reviews that could never be decided. A round that finds a requirement so,
+  after a group was emptied or when its only approver revised it, is
+  refused with 409 `approvers_reach_nobody` naming the requirement. The
+  quorum now counts only the approvers who may decide. (#463)
 - A webhook delivery is posted once, and its failure counted once, when
   more than one worker sends, as during a rollout. Before, a worker held up
   by slow receivers could post deliveries another worker had already taken
@@ -51,6 +59,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
 - A webhook delivery no longer follows a redirect. A receiver that answers
   3xx has the delivery logged as failed with that status, and the signed
   body is never posted to a host the webhook does not name (#462).
+- A request that carries a session cookie and an expired API token no longer
+  signs the browser out. Only a dead cookie is cleared now (#461).
+- A cross-origin address listed with a trailing slash in
+  `EXCITER_CORS_ORIGINS` now matches the origin a browser sends, and an
+  entry that is not an absolute URL stops the server at start with a
+  sentence saying what to set (#464).
 - The Go coverage totals are rounded down to one decimal, as the web ones
   are, so a total just below its floor fails: 75.96% no longer reads as 76.0
   and passes a floor of 76. The web total is cut down the same way and reads
@@ -62,12 +76,6 @@ and the versioning [Semantic Versioning](https://semver.org/).
   One trailer no longer lets a floor fall by any amount, or covers a later
   drop on the same branch, and a floor file deleted since main fails rather
   than reading as 0 (#466).
-- A request that carries a session cookie and an expired API token no longer
-  signs the browser out. Only a dead cookie is cleared now (#461).
-- A cross-origin address listed with a trailing slash in
-  `EXCITER_CORS_ORIGINS` now matches the origin a browser sends, and an
-  entry that is not an absolute URL stops the server at start with a
-  sentence saying what to set (#464).
 
 ## [0.3.0] - 2026-10-30
 
