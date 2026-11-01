@@ -26,15 +26,15 @@ Preconditions: Two requirements linked by Refines.
 | Change the statement of the second requirement and save it. | The link shows as suspect on both requirements. |
 | Clear the suspect mark on the first requirement. | The link no longer shows as suspect. |
 
-### TC-NFR-1 Coverage of a large project
+### TC-TRC-3 The trace counts what the reader may not see
 type: Test case
-verifies: NFR-1
+verifies: FR-TRC-3
 automated: yes
-result: blocked
-note: The load fixture of 5,000 requirements was not available on the test stack.
+result: passed
 
-Preconditions: A project of 5,000 requirements on the development stack.
+Preconditions: A requirement linked to one requirement in a project the tester may not view.
 
 | Action | Expected |
 |---|---|
-| Ask the project's coverage 100 times. | The 95th percentile of the answers is within 2 seconds. |
+| Open the trace of the requirement. | The visible links are drawn. |
+| Read the count of hidden links. | One link is counted and nothing names its other end. |
