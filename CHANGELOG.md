@@ -26,6 +26,18 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 - The development realm is Dynamo's again, now with the Rotor client and
   its administrators' group, so the gate's realm check passes (#482).
+- The query compiler marks a bound value with a character Postgres never
+  accepts in SQL, and stops with a clear message if a marker has no value,
+  instead of reading past its list (#459).
+
+### Fixed
+
+- A request that carries a session cookie and an expired API token no longer
+  signs the browser out. Only a dead cookie is cleared now (#461).
+- A cross-origin address listed with a trailing slash in
+  `EXCITER_CORS_ORIGINS` now matches the origin a browser sends, and an
+  entry that is not an absolute URL stops the server at start with a
+  sentence saying what to set (#464).
 
 ## [0.3.0] - 2026-10-30
 

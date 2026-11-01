@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"net/http"
+	"slices"
 	"strings"
 )
 
@@ -21,13 +22,21 @@ func securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
+// originSet is the allow list as a set, spelled as a browser sends an Origin: without a trailing slash.
+func originSet(origins []string) map[string]bool {
+	set := make(map[string]bool, len(origins))
+	for _, o := range origins {
+		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
+			set[o] = true
+		}
+	}
+	return set
+}
+
 // cors lets the development web client on another port call the API with
 // credentials. An empty allow list turns it off, right for a same-origin client.
 func cors(allowed []string) func(http.Handler) http.Handler {
-	set := make(map[string]bool, len(allowed))
-	for _, o := range allowed {
-		set[o] = true
-	}
+	set := originSet(allowed)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			origin := r.Header.Get("Origin")
@@ -52,12 +61,7 @@ func cors(allowed []string) func(http.Handler) http.Handler {
 // sameSite refuses a cookie-carried write that a browser was talked into from
 // elsewhere: it asks for JSON, which a cross-site form cannot send.
 func (s *Server) sameSite(allowed []string) func(http.Handler) http.Handler {
-	origins := map[string]bool{}
-	for _, origin := range append(allowed, s.AppBaseURL) {
-		if origin = strings.TrimRight(strings.TrimSpace(origin), "/"); origin != "" {
-			origins[origin] = true
-		}
-	}
+	origins := originSet(slices.Concat(allowed, []string{s.AppBaseURL}))
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// MCP is held to the origin with a bearer too: a page of another site that reached a local server by

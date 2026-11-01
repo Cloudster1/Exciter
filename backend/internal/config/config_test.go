@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -138,6 +139,27 @@ func TestListsAreTrimmed(t *testing.T) {
 	}
 	if len(c.DB.ReplicaURLs) != 2 || c.DB.ReplicaURLs[0] != "postgres://a" || c.DB.ReplicaURLs[1] != "postgres://b" {
 		t.Fatalf("replicas = %q", c.DB.ReplicaURLs)
+	}
+}
+
+func TestCORSOriginsLoadWithoutTrailingSlashes(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_CORS_ORIGINS", "https://a.example/, https://b.example")
+	c, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := fmt.Sprint(c.CORSOrigins); got != "[https://a.example https://b.example]" {
+		t.Fatalf("origins = %s", got)
+	}
+}
+
+func TestAMalformedCORSOriginIsReported(t *testing.T) {
+	clean(t)
+	t.Setenv("EXCITER_CORS_ORIGINS", "https://a.example,localhost:5173")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "EXCITER_CORS_ORIGINS") || !strings.Contains(err.Error(), "localhost:5173") {
+		t.Fatalf("error = %v, want it to name the bad origin", err)
 	}
 }
 

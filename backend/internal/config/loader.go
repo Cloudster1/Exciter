@@ -213,3 +213,17 @@ func splitList(v string) []string {
 	}
 	return out
 }
+
+// splitOrigins parses a list of origins the way a browser sends one, without a trailing slash, and returns the
+// entries that are not an absolute URL with a scheme and host.
+func splitOrigins(v string) (origins, bad []string) {
+	for _, o := range splitList(v) {
+		o = strings.TrimRight(o, "/")
+		if u, err := url.Parse(o); err != nil || u.Scheme == "" || u.Host == "" {
+			bad = append(bad, o)
+			continue
+		}
+		origins = append(origins, o)
+	}
+	return origins, bad
+}
