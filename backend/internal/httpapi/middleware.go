@@ -147,7 +147,7 @@ type Authenticator interface {
 // rejects an anonymous request: requireAuth does, where it matters.
 func (s *Server) authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		secret := credentialFrom(r, s.CookieName)
+		secret, fromCookie := credentialFrom(r, s.CookieName)
 		if secret == "" || s.Auth == nil {
 			next.ServeHTTP(w, r)
 			return
@@ -172,8 +172,9 @@ func (s *Server) authenticate(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 		case errors.Is(err, auth.ErrInvalidToken):
 			// A dead credential makes the caller anonymous, so sign-in still
-			// works with a stale cookie; clearing it stops the resending.
-			if _, cookieErr := r.Cookie(s.CookieName); cookieErr == nil {
+			// works with a stale cookie; clearing it stops the resending. A dead
+			// bearer says nothing about a cookie that rode along, so that stays.
+			if fromCookie {
 				s.clearSessionCookie(w)
 			}
 		default:
@@ -220,17 +221,18 @@ func requireCreateProjects(next http.Handler) http.Handler {
 }
 
 // credentialFrom prefers the Authorization header over the session cookie, so
-// API clients are never affected by cookie policy.
-func credentialFrom(r *http.Request, cookieName string) string {
+// API clients are never affected by cookie policy. It also says whether the
+// secret came from the cookie.
+func credentialFrom(r *http.Request, cookieName string) (secret string, fromCookie bool) {
 	if h := r.Header.Get("Authorization"); h != "" {
 		if token, ok := strings.CutPrefix(h, "Bearer "); ok {
-			return strings.TrimSpace(token)
+			return strings.TrimSpace(token), false
 		}
 	}
 	if c, err := r.Cookie(cookieName); err == nil {
-		return c.Value
+		return c.Value, true
 	}
-	return ""
+	return "", false
 }
 
 // userFrom is the caller's id; the routes that call it sit behind requireAuth.

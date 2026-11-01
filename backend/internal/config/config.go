@@ -245,13 +245,17 @@ func Load() (Config, error) {
 	l := &loader{}
 	// EXCITER_DB_MAX_CONNS sizes both pools unless one is sized on its own.
 	maxConns := l.integer("EXCITER_DB_MAX_CONNS", DefaultMaxConns)
+	corsOrigins, badOrigins := splitOrigins(l.str("EXCITER_CORS_ORIGINS", ""))
+	for _, o := range badOrigins {
+		l.problem(fmt.Sprintf("EXCITER_CORS_ORIGINS has %q; list absolute origins such as https://app.example, separated by commas.", o))
+	}
 	c := Config{
 		Env:            l.str("EXCITER_ENV", EnvDevelopment),
 		HTTPAddr:       l.str("EXCITER_HTTP_ADDR", DefaultHTTPAddr),
 		LogLevel:       l.str("EXCITER_LOG_LEVEL", "info"),
 		Name:           l.str("EXCITER_NAME", DefaultName),
 		AppBaseURL:     strings.TrimSuffix(l.str("EXCITER_APP_URL", DefaultAppBaseURL), "/"),
-		CORSOrigins:    splitList(l.str("EXCITER_CORS_ORIGINS", "")),
+		CORSOrigins:    corsOrigins,
 		RequestTimeout: l.duration("EXCITER_REQUEST_TIMEOUT", DefaultRequestTimeout),
 		DB: DB{
 			PrimaryURL:      l.str("EXCITER_DB_PRIMARY_URL", ""),

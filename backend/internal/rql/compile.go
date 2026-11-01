@@ -34,8 +34,12 @@ type Compiled struct {
 	orderArgs []any
 }
 
+// markDelim brackets a bound argument's index. Postgres rejects NUL in query text, so no SQL fragment can
+// contain one, unlike a bare "?N" that a jsonb operator beside a number could forge.
+const markDelim = "\x00"
+
 // placeholder marks a bound argument until it is placed.
-var placeholder = regexp.MustCompile(`\?(\d+)`)
+var placeholder = regexp.MustCompile(markDelim + `(\d+)` + markDelim)
 
 // Place binds the condition's arguments through bind, which answers each one's placeholder, and returns the
 // condition, empty for a query that only sorts.
@@ -73,7 +77,10 @@ func fill(sql string, args []any, bind func(any) string) string {
 
 func replace(sql string, marks []string) string {
 	return placeholder.ReplaceAllStringFunc(sql, func(m string) string {
-		n, _ := strconv.Atoi(m[1:])
+		n, _ := strconv.Atoi(strings.Trim(m, markDelim))
+		if n >= len(marks) {
+			panic(fmt.Sprintf("rql: bind marker %d past %d values", n, len(marks)))
+		}
 		return marks[n]
 	})
 }
@@ -100,7 +107,7 @@ type compiler struct {
 // bind stores a value and returns its placeholder. Nothing typed ever reaches the SQL text by any other road.
 func (c *compiler) bind(value any) string {
 	c.args = append(c.args, value)
-	return "?" + strconv.Itoa(len(c.args)-1)
+	return markDelim + strconv.Itoa(len(c.args)-1) + markDelim
 }
 
 // Compile checks every field, operator and value against the catalog and produces the SQL. A query that compiles

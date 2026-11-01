@@ -26,6 +26,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 - The development realm is Dynamo's again, now with the Rotor client and
   its administrators' group, so the gate's realm check passes (#482).
+- The query compiler marks a bound value with a character Postgres never
+  accepts in SQL, and stops with a clear message if a marker has no value,
+  instead of reading past its list (#459).
 - The web tests pin vitest to exactly the version of its coverage provider,
   5.0.5, so a lock file refresh can no longer move one without the other
   (#468).
@@ -40,6 +43,14 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A webhook delivery is posted once, and its failure counted once, when
+  more than one worker sends, as during a rollout. Before, a worker held up
+  by slow receivers could post deliveries another worker had already taken
+  over, so a receiver got them twice and an endpoint used up its retries and
+  was turned off sooner (#460).
+- A webhook delivery no longer follows a redirect. A receiver that answers
+  3xx has the delivery logged as failed with that status, and the signed
+  body is never posted to a host the webhook does not name (#462).
 - The Go coverage totals are rounded down to one decimal, as the web ones
   are, so a total just below its floor fails: 75.96% no longer reads as 76.0
   and passes a floor of 76. The web total is cut down the same way and reads
@@ -51,6 +62,12 @@ and the versioning [Semantic Versioning](https://semver.org/).
   One trailer no longer lets a floor fall by any amount, or covers a later
   drop on the same branch, and a floor file deleted since main fails rather
   than reading as 0 (#466).
+- A request that carries a session cookie and an expired API token no longer
+  signs the browser out. Only a dead cookie is cleared now (#461).
+- A cross-origin address listed with a trailing slash in
+  `EXCITER_CORS_ORIGINS` now matches the origin a browser sends, and an
+  entry that is not an absolute URL stops the server at start with a
+  sentence saying what to set (#464).
 
 ## [0.3.0] - 2026-10-30
 
