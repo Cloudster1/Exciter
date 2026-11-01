@@ -91,10 +91,9 @@ export const en = {
     tooltip: (label: string) => `Theme: ${label}`,
   },
   switcher: {
-    open: "Go to a requirement or a page",
-    title: "Go to",
+    title: "Quick search",
     label: "Find a requirement by its key or title, or a page by its name",
-    placeholder: "Go to...",
+    placeholder: "Quick search...",
     shortcut: "Ctrl K",
     shortcutMac: "Cmd K",
     escape: "Esc",

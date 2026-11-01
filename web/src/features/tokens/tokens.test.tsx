@@ -119,7 +119,7 @@ describe("everybody's tokens", () => {
       [`DELETE /tokens/everyone/${theirs.id}`]: { status: 204 },
     });
     await renderAt(ALL_CONNECTED_APPS_PATH);
-    const table = await screen.findByRole("table", { name: "Everybody's tokens" });
+    const table = await screen.findByRole("table", { name: "All access tokens" });
     expect(within(table).getByText("Bob")).toBeInTheDocument();
     expect(await axeViolations()).toEqual([]);
     await userEvent.click(within(table).getByRole("button", { name: "Revoke Nightly export of Bob" }));

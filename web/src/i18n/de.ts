@@ -89,10 +89,9 @@ export const de: Messages = {
     tooltip: (label: string) => `Darstellung: ${label}`,
   },
   switcher: {
-    open: "Zu einer Anforderung oder Seite wechseln",
-    title: "Wechseln zu",
+    title: "Schnellsuche",
     label: "Eine Anforderung über Schlüssel oder Titel, eine Seite über ihren Namen finden",
-    placeholder: "Wechseln zu...",
+    placeholder: "Schnellsuche...",
     shortcut: "Strg K",
     shortcutMac: "Cmd K",
     escape: "Esc",
