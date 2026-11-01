@@ -7,17 +7,6 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
-
-- A webhook delivery is posted once, and its failure counted once, when
-  more than one worker sends, as during a rollout. Before, a worker held up
-  by slow receivers could post deliveries another worker had already taken
-  over, so a receiver got them twice and an endpoint used up its retries and
-  was turned off sooner (#460).
-- A webhook delivery no longer follows a redirect. A receiver that answers
-  3xx has the delivery logged as failed with that status, and the signed
-  body is never posted to a host the webhook does not name (#462).
-
 ### Security
 
 - An approval or rejection in a review session now needs the approve right
@@ -43,6 +32,22 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A review session whose approvers reach nobody who may decide, such as an
+  empty group, a group whose members are all deactivated, or only the
+  author of a requirement, is refused with a sentence on `participants`
+  that says which, also straight in the database. Before, it opened with
+  reviews that could never be decided. A round that finds a requirement so,
+  after a group was emptied or when its only approver revised it, is
+  refused with 409 `approvers_reach_nobody` naming the requirement. The
+  quorum now counts only the approvers who may decide. (#463)
+- A webhook delivery is posted once, and its failure counted once, when
+  more than one worker sends, as during a rollout. Before, a worker held up
+  by slow receivers could post deliveries another worker had already taken
+  over, so a receiver got them twice and an endpoint used up its retries and
+  was turned off sooner (#460).
+- A webhook delivery no longer follows a redirect. A receiver that answers
+  3xx has the delivery logged as failed with that status, and the signed
+  body is never posted to a host the webhook does not name (#462).
 - A request that carries a session cookie and an expired API token no longer
   signs the browser out. Only a dead cookie is cleared now (#461).
 - A cross-origin address listed with a trailing slash in
