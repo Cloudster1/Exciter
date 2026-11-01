@@ -31,6 +31,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The quick switcher Ctrl K opens is called Quick search, and the list of
+  everybody's tokens under Admin, Connected apps is called All access
+  tokens, the names Armature and Stator use for the same things (#281).
 - The development realm is Dynamo's again, now with the Rotor client and
   its administrators' group, so the gate's realm check passes (#482).
 - The query compiler marks a bound value with a character Postgres never
