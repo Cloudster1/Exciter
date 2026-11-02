@@ -23,10 +23,17 @@ copy_claude() {
   mkdir -p .claude && cp -r "$SRC/.claude/hooks" "$SRC/.claude/skills" "$SRC/.claude/settings.json" .claude/
 }
 
+# Committed before main is set, so main holds the copies: a checkout whose working tree differs from its HEAD,
+# as one a gate runs in may, would otherwise count that difference as what every fixture branch changes.
+fixture() {
+  copy_claude && cp "$SRC/run-tests.sh" . && git add -A && { git diff --cached --quiet || git commit -qm fixture; } \
+    && fixture_main
+}
+
 W=$(mktemp -d)
 trap 'rm -rf "$W"' EXIT
 git clone -q "$SRC" "$W/r" && cd "$W/r"
-fixture_main && copy_claude && cp "$SRC/run-tests.sh" . && git add -A && git commit -qm fixture
+fixture
 export CLAUDE_PROJECT_DIR="$W/r"
 G="git"; C="commit"
 fail=0
@@ -173,7 +180,7 @@ true
 W2=$(mktemp -d)
 trap 'rm -rf "$W" "$W2"' EXIT
 git clone -q "$SRC" "$W2/r" && cd "$W2/r"
-fixture_main && copy_claude && cp "$SRC/run-tests.sh" . && git add -A && git commit -qm fixture
+fixture
 export CLAUDE_PROJECT_DIR="$W2/r"
 G="git"; C="commit"
 
@@ -313,7 +320,7 @@ echo "== the gate is given those layers, and says what it skipped"
 W3=$(mktemp -d)
 trap 'rm -rf "$W" "$W2" "$W3"' EXIT
 git clone -q "$SRC" "$W3/r" && cd "$W3/r"
-fixture_main && copy_claude && cp "$SRC/run-tests.sh" . && git add -A && git commit -qm fixture
+fixture
 export CLAUDE_PROJECT_DIR="$W3/r"
 git switch -qc fix/7-gate-layers
 mkdir -p backend && printf 'words\n' > NOTES.md && printf 'package x\n' > backend/x.go && git add NOTES.md backend && git commit -qm "words and a backend file"
@@ -343,11 +350,16 @@ push_json | env -u EXCITER_GATE .claude/hooks/branch-guard.sh > /dev/null
 rm -f "$(git rev-parse --git-path exciter-gate-passed)"
 
 echo "== a gate that does not finish blocks the push"
-printf '#!/bin/sh\nexec sleep 37\n' > run-tests.sh
+# Concurrent copies of these tests, here or in Stator and Rotor, killed each other's 'sleep 37': this stub's
+# command line is unique to the run, and the check looks only at the process group the hook's setsid made.
+GATE_PID="$W3/gate.pid"
+printf '#!/bin/sh\necho $$ > %s\nexec sleep 37.%s\n' "$GATE_PID" "$$" > run-tests.sh
 got="$(push_json | EXCITER_GATE_LIMIT=3 .claude/hooks/branch-guard.sh | jq -r '.hookSpecificOutput | .permissionDecision + " " + .permissionDecisionReason')"
 if [[ "$got" == deny\ *"did not finish within"* ]]; then echo "ok    timeout  denied the push"; else echo "FAIL  a gate that ran out of time gave: $got"; fail=1; fi
-sleep 1
-if pgrep -f '^sleep 37$' > /dev/null; then echo "FAIL  timeout  the gate was left running"; fail=1; pkill -f '^sleep 37$'; else echo "ok    timeout  nothing was left running"; fi
+gate_pid="$(cat "$GATE_PID" 2>/dev/null)"
+if [[ -z "$gate_pid" ]]; then echo "FAIL  timeout  the gate never started"; fail=1
+elif pgrep -g "$gate_pid" > /dev/null; then echo "FAIL  timeout  the gate was left running"; fail=1; kill -KILL -- "-$gate_pid"
+else echo "ok    timeout  nothing was left running"; fi
 grep -q $'\tgate_timeout=3' "$W3/r/.git/branch-guard.log" && echo "ok    timeout  logged" || { echo "FAIL  timeout  not logged"; fail=1; }
 echo "== a clean run records its layers for the tree it tested"
 W4=$(mktemp -d)
