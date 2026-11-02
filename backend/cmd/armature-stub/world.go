@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"sort"
 	"strconv"
@@ -41,6 +42,8 @@ const (
 	// so every other test reads the stub as it did before.
 	projectDemo = "EXC"
 	demoName    = "demo"
+	// demoIssues covers every number Exciter's issues have reached, so each issue a specification names is there (#488).
+	demoIssues = 600
 )
 
 type person struct {
@@ -254,8 +257,8 @@ func seed(slug string) *tenant {
 	// An issue that moved keeps answering to its old key: SEC-2 is CP-5 now.
 	t.move(t.issues["SEC-2"], t.project(projectOpen), seeded.Add(6*time.Hour))
 	demo := t.project(projectDemo)
-	for _, summary := range []string{"Projects", "Requirements", "Trace links"} {
-		t.add(demo, t.typeNamed("Story"), summary, t.person(demoName), seeded)
+	for n := 1; n <= demoIssues; n++ {
+		t.add(demo, t.typeNamed("Story"), fmt.Sprintf("Exciter issue %d", n), t.person(demoName), seeded)
 	}
 	return t
 }

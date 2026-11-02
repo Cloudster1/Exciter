@@ -14,18 +14,18 @@ const (
 	stepProject stepKind = iota
 	stepSection
 	stepLinks
-	stepBaseline
+	stepTests
 )
 
-// step is one event's work: a project made, one of its milestones filed, a project linked, or the baselines.
+// step is one event's work: a project made, one of its sections filed, a project linked, or its tests run.
 type step struct {
 	kind    stepKind
 	project int
 	section int
 }
 
-// stepsOf is a run in order: a build makes and files every project before it links, so a dependency finds its
-// target in any of them.
+// stepsOf is a run in order: every project is made before any links, and linked before its tests run against a
+// baseline that holds the links. Linking again runs the tests again, which finishes a run that stopped.
 func stepsOf(p Plan, kind Kind) []step {
 	var out []step
 	if kind == KindBuild {
@@ -39,7 +39,10 @@ func stepsOf(p Plan, kind Kind) []step {
 	for i := range p.Projects {
 		out = append(out, step{kind: stepLinks, project: i})
 	}
-	return append(out, step{kind: stepBaseline})
+	for i := range p.Projects {
+		out = append(out, step{kind: stepTests, project: i})
+	}
+	return out
 }
 
 // StepCount is how many steps a run of that kind takes for the plan.
@@ -48,9 +51,6 @@ func StepCount(p Plan, kind Kind) int { return len(stepsOf(p, kind)) }
 // run does one step.
 func (s *Service) run(ctx context.Context, actor uuid.UUID, p Plan, keys map[string]string, st step) (Result, error) {
 	var res Result
-	if st.kind == stepBaseline {
-		return res, s.Baseline(ctx, actor, p, keys)
-	}
 	pr := p.Projects[st.project]
 	key := keys[pr.Tool]
 	if key == "" {
@@ -64,6 +64,8 @@ func (s *Service) run(ctx context.Context, actor uuid.UUID, p Plan, keys map[str
 		res.Requirements, err = s.fileSection(ctx, actor, pr, key, st.section)
 	case stepLinks:
 		res.Linked, err = s.LinkProject(ctx, actor, p, keys, pr.Tool)
+	case stepTests:
+		err = s.RunTests(ctx, actor, p, keys, pr.Tool)
 	}
 	if err != nil {
 		return res, fmt.Errorf("the project %s: %w", key, err)

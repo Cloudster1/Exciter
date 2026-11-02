@@ -20,6 +20,7 @@ import (
 	"github.com/cloudster1/exciter/backend/internal/project"
 	"github.com/cloudster1/exciter/backend/internal/requirement"
 	"github.com/cloudster1/exciter/backend/internal/stator"
+	"github.com/cloudster1/exciter/backend/internal/testexec"
 	"github.com/cloudster1/exciter/backend/internal/trace"
 )
 
@@ -27,7 +28,7 @@ import (
 const TopicRequested = "suite_demo.requested"
 
 // Keys are the projects the demo makes, in the order of the snapshot's tools; Armature and Stator use the same.
-var Keys = []string{"ARM", "EXC", "STA"}
+var Keys = []string{"ARM", "EXC", "STA", "ROT"}
 
 var (
 	// ErrExists is a second request to add the demo.
@@ -87,6 +88,7 @@ type Service struct {
 	requirements *requirement.Service
 	trace        *trace.Service
 	baselines    *baseline.Service
+	runs         *testexec.Service
 	armature     *armature.Service
 	stator       *stator.Service
 	snapshot     *Snapshot
@@ -96,9 +98,9 @@ type Service struct {
 
 // NewService builds the service; armatures and stators may be nil, and then nothing is linked to them.
 func NewService(cluster *db.Cluster, projects *project.Service, requirements *requirement.Service, links *trace.Service,
-	baselines *baseline.Service, armatures *armature.Service, stators *stator.Service) *Service {
+	baselines *baseline.Service, runs *testexec.Service, armatures *armature.Service, stators *stator.Service) *Service {
 	return &Service{db: cluster, projects: projects, requirements: requirements, trace: links, baselines: baselines,
-		armature: armatures, stator: stators, topic: TopicRequested, keys: Keys}
+		runs: runs, armature: armatures, stator: stators, topic: TopicRequested, keys: Keys}
 }
 
 // WithSnapshot runs a snapshot other than the embedded one under keys of its own, its steps on a topic of its own,

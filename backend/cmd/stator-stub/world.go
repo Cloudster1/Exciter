@@ -161,6 +161,7 @@ func seed(slug string) *tenant {
 	demo := t.spaces[2]
 	for _, spec := range []struct{ title, label string }{
 		{"README", "demo-exc-readme"}, {"Architecture", "demo-exc-docs-architecture"}, {"API contract M2", "demo-exc-docs-api-contract-m2"},
+		{"Trace links", "demo-exc-guide-links"},
 	} {
 		t.add(demo, demo.Home, spec.title, 1).Labels = []string{spec.label}
 	}

@@ -1,10 +1,11 @@
-// Package demo is the suite demo (#270): the requirements of Armature, Exciter and Stator, taken from their own
-// issues, traced to those issues in Armature and to their documentation in Stator.
+// Package demo is the suite demo (#270, #488): a written specification of Armature, Exciter, Stator and Rotor each,
+// with test cases and a test run, traced to their issues in Armature and to their guides in Stator.
 package demo
 
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -14,15 +15,15 @@ import (
 //go:embed snapshot/*.json
 var snapshotFiles embed.FS
 
-// toolFiles is the order the three projects are made in.
-var toolFiles = []string{"armature", "exciter", "stator"}
+// toolFiles is the order the projects are made in.
+var toolFiles = []string{"armature", "exciter", "stator", "rotor"}
 
 // Snapshot is what scripts/demo-snapshot.sh took from GitHub: one Tool per repository.
 type Snapshot struct {
 	Tools []Tool
 }
 
-// Tool is one repository's issues that carry a user story. Key prefixes its issues in Armature and its labels in
+// Tool is one repository's issues. Key prefixes its issues in Armature and its labels in
 // Stator, whatever key its project gets in Exciter.
 type Tool struct {
 	Repo   string  `json:"repo"`
@@ -33,6 +34,8 @@ type Tool struct {
 	Issues []Issue `json:"issues"`
 	// Architecture is drawn by hand rather than taken, so it comes from architecture/, not the snapshot.
 	Architecture *Architecture `json:"-"`
+	// Spec is written by hand as well, in spec/.
+	Spec []SpecFile `json:"-"`
 }
 
 // Issue is one GitHub issue as the snapshot keeps it.
@@ -43,11 +46,25 @@ type Issue struct {
 	ClosedAt  *time.Time `json:"closedAt"`
 	Milestone string     `json:"milestone"`
 	URL       string     `json:"url"`
-	Body      string     `json:"body"`
 }
 
-// Embedded is the snapshot this build carries.
+// Embedded is the snapshot this build carries, with each tool's architecture and specification.
 func Embedded() (Snapshot, error) {
+	s, err := embeddedIssues()
+	if err != nil {
+		return s, err
+	}
+	for i, t := range s.Tools {
+		var errs []error
+		if s.Tools[i].Spec, errs = readSpec(specFiles, toolDirs[t.Key]); len(errs) > 0 {
+			return Snapshot{}, fmt.Errorf("the %s specification: %w", t.Name, errors.Join(errs...))
+		}
+	}
+	return s, nil
+}
+
+// embeddedIssues is the snapshot and the architecture, which the specifications are held to.
+func embeddedIssues() (Snapshot, error) {
 	var s Snapshot
 	for _, name := range toolFiles {
 		raw, err := snapshotFiles.ReadFile("snapshot/" + name + ".json")

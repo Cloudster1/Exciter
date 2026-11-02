@@ -118,7 +118,7 @@ func run() error {
 		Route(testresult.TopicRequested, testresult.Handler(testresult.NewService(cluster))).
 		Route(quality.TopicRecheck, quality.Handler(quality.NewService(cluster, requirement.LocateForQuality))).
 		Route(demo.TopicRequested, demo.Handler(demo.NewService(cluster, project.NewService(cluster).WithSeeder(risk.SeedProject),
-			requirements, links, baseline.NewService(cluster), armatures, stators)))
+			requirements, links, baseline.NewService(cluster), testexec.NewService(cluster, store), armatures, stators)))
 	var mailer mail.Mailer
 	if cfg.Mail.SMTPAddr == "" {
 		log.Warn("mail is off: EXCITER_SMTP_ADDR is not set, so notifications are written in the app only")

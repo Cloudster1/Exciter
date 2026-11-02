@@ -199,11 +199,11 @@ export const de: Messages = {
   suiteDemo: {
     title: "Suite-Demo",
     intro:
-      "Die Anforderungen von Armature, Exciter und Stator selbst, aus ihren eigenen Issues, als drei Projekte, verfolgt zu diesen Issues in Armature und zu ihrer Dokumentation in Stator.",
+      "Eine geschriebene Spezifikation von Armature, Exciter, Stator und Rotor, als vier Projekte mit Testfällen und einer abgeschlossenen Testdurchführung, verfolgt zu den Issues der Werkzeuge in Armature und zu ihren Benutzerhandbüchern in Stator.",
     add: "Suite-Demo hinzufügen",
     confirmTitle: "Suite-Demo hinzufügen?",
     confirmBody:
-      "Das legt die Projekte ARM, EXC und STA mit rund 1.500 Anforderungen in Ihrem Namen an und verknüpft sie über Ihre Konten in Armature und Stator. Sie wird einmal hinzugefügt und braucht einige Minuten.",
+      "Das legt die Projekte ARM, EXC, STA und ROT mit ihren Anforderungen, Testfällen und einer Testdurchführung in Ihrem Namen an und verknüpft sie über Ihre Konten in Armature und Stator. Sie wird einmal hinzugefügt und braucht einige Minuten.",
     confirm: "Hinzufügen",
     building: (step: number, steps: number) => `Die Demo wird aufgebaut: Schritt ${step} von ${steps}. Das braucht einige Minuten.`,
     linking: "Die Demo wird mit Armature und Stator verknüpft.",

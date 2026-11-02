@@ -16,7 +16,7 @@ import { t } from "@/i18n";
 const changeTone: Record<NonNullable<BaselineMatrixLink["change"]>, string> = {
   added: "bg-success-subtle text-success",
   removed: "bg-danger-subtle text-danger line-through",
-  changed: "bg-warning-subtle text-warning",
+  changed: "bg-warning-subtle text-ink",
 };
 
 /** How one link of a baseline's cell reads: its name, suspect or not recorded, and how it changed when compared. */

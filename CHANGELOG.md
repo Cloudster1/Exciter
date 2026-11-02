@@ -31,6 +31,15 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- The suite demo holds a specification of each tool written by hand, now
+  with Rotor: four projects, `ARM`, `EXC`, `STA` and `ROT`, each with
+  stakeholder needs, functional requirements by function area,
+  non-functional requirements, interfaces and test cases with their steps.
+  Each requirement implements the issues that built it and is described by
+  its user guide page in Stator, and each project has a test plan and one
+  closed test run against the baseline "Demo baseline", so its coverage and
+  dashboards have something to show. Link the demo again also finishes a
+  test run that stopped (#488).
 - The quick switcher Ctrl K opens is called Quick search, and the list of
   everybody's tokens under Admin, Connected apps is called All access
   tokens, the names Armature and Stator use for the same things (#281).
@@ -53,6 +62,9 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- A partly implemented requirement on the coverage page, and a changed link
+  in a baseline matrix, now read in the ink colour on their amber tint, which
+  meets the 4.5:1 contrast the accessibility check asks for in both themes.
 - A review session whose approvers reach nobody who may decide, such as an
   empty group, a group whose members are all deactivated, or only the
   author of a requirement, is refused with a sentence on `participants`

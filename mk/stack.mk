@@ -151,7 +151,7 @@ seed: ## Run the seed again against the running stack, and add the suite demo
 	docker compose run --rm seed /app/seed demo
 
 .PHONY: demo-snapshot
-demo-snapshot: ## Take the suite demo's snapshot of the three tools' issues again, with gh on the host
+demo-snapshot: ## Take the suite demo's snapshot of the four tools' issues again, with gh on the host
 	$(ROOT)/scripts/demo-snapshot.sh
 
 .PHONY: stack-up

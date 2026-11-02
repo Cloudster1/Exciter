@@ -1,0 +1,801 @@
+{
+  "repo": "Cloudster1/Rotor",
+  "key": "ROT",
+  "name": "Rotor",
+  "commit": "46af61fd9158c40da70617e8510d82defa4514df",
+  "taken": "2026-11-01",
+  "issues": [
+    {
+      "number": 1,
+      "title": "Set up repository tooling, the compose stack and CI",
+      "closed": true,
+      "closedAt": "2026-10-18T09:41:02Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/1"
+    },
+    {
+      "number": 2,
+      "title": "Record the architecture decisions: Go control plane, Python runner, OpenBao, delegation and sandboxes",
+      "closed": true,
+      "closedAt": "2026-10-18T09:47:06Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/2"
+    },
+    {
+      "number": 3,
+      "title": "Build the backend skeleton: config, database, migrations, route table, meta and audit",
+      "closed": true,
+      "closedAt": "2026-10-18T10:07:39Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/3"
+    },
+    {
+      "number": 4,
+      "title": "Build the runner skeleton: Python project, pinned LangGraph, image and tests",
+      "closed": true,
+      "closedAt": "2026-10-18T10:14:51Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/4"
+    },
+    {
+      "number": 5,
+      "title": "Build the web skeleton: React 19, Vite, theme, API client and browser tests",
+      "closed": true,
+      "closedAt": "2026-10-18T10:39:01Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/5"
+    },
+    {
+      "number": 6,
+      "title": "Sign in through the shared Keycloak realm dynamo",
+      "closed": true,
+      "closedAt": "2026-10-18T10:55:34Z",
+      "milestone": "M0 Foundation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/6"
+    },
+    {
+      "number": 7,
+      "title": "Agree the API contract for tool connections",
+      "closed": true,
+      "closedAt": "2026-10-18T11:35:12Z",
+      "milestone": "M1 Tool connections",
+      "url": "https://github.com/Cloudster1/Rotor/issues/7"
+    },
+    {
+      "number": 8,
+      "title": "Add test doubles for the tools and a suite profile with the real ones",
+      "closed": true,
+      "closedAt": "2026-10-18T12:04:45Z",
+      "milestone": "M1 Tool connections",
+      "url": "https://github.com/Cloudster1/Rotor/issues/8"
+    },
+    {
+      "number": 9,
+      "title": "Add a tool to Rotor and register Rotor as its OAuth client",
+      "closed": true,
+      "closedAt": "2026-10-18T12:49:28Z",
+      "milestone": "M1 Tool connections",
+      "url": "https://github.com/Cloudster1/Rotor/issues/9"
+    },
+    {
+      "number": 10,
+      "title": "Keep connection secrets in OpenBao",
+      "closed": true,
+      "closedAt": "2026-10-18T11:43:47Z",
+      "milestone": "M1 Tool connections",
+      "url": "https://github.com/Cloudster1/Rotor/issues/10"
+    },
+    {
+      "number": 11,
+      "title": "Connect your account in a tool with one click",
+      "closed": true,
+      "closedAt": "2026-10-18T13:05:12Z",
+      "milestone": "M1 Tool connections",
+      "url": "https://github.com/Cloudster1/Rotor/issues/11"
+    },
+    {
+      "number": 12,
+      "title": "Mint a short-lived access token for a person and a tool",
+      "closed": true,
+      "closedAt": "2026-10-18T13:19:02Z",
+      "milestone": "M1 Tool connections",
+      "url": "https://github.com/Cloudster1/Rotor/issues/12"
+    },
+    {
+      "number": 13,
+      "title": "Agree the API contract for workflows and the runner",
+      "closed": true,
+      "closedAt": "2026-10-18T14:41:07Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/13"
+    },
+    {
+      "number": 14,
+      "title": "Define workflow spec v1 with a JSON Schema",
+      "closed": true,
+      "closedAt": "2026-10-18T14:53:40Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/14"
+    },
+    {
+      "number": 15,
+      "title": "Write, version and share workflows",
+      "closed": true,
+      "closedAt": "2026-10-18T15:59:29Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/15"
+    },
+    {
+      "number": 16,
+      "title": "Compile a workflow into a LangGraph graph in the runner",
+      "closed": true,
+      "closedAt": "2026-10-18T15:05:24Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/16"
+    },
+    {
+      "number": 17,
+      "title": "Run Python code nodes",
+      "closed": true,
+      "closedAt": "2026-10-18T15:27:05Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/17"
+    },
+    {
+      "number": 18,
+      "title": "Build the runner protocol between control plane and sandbox",
+      "closed": true,
+      "closedAt": "2026-10-18T16:17:40Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/18"
+    },
+    {
+      "number": 19,
+      "title": "Keep checkpoints in the control plane",
+      "closed": true,
+      "closedAt": "2026-10-18T17:06:54Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/19"
+    },
+    {
+      "number": 20,
+      "title": "Let administrators set language model providers",
+      "closed": true,
+      "closedAt": "2026-10-18T17:21:20Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/20"
+    },
+    {
+      "number": 21,
+      "title": "Put sandboxes behind one interface, with a Docker backend for development",
+      "closed": true,
+      "closedAt": "2026-10-18T15:33:35Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/21"
+    },
+    {
+      "number": 22,
+      "title": "Start a workflow by hand and carry the run to its end",
+      "closed": true,
+      "closedAt": "2026-10-18T18:27:41Z",
+      "milestone": "M3 First run (MVP)",
+      "url": "https://github.com/Cloudster1/Rotor/issues/22"
+    },
+    {
+      "number": 23,
+      "title": "Hand a run's tokens to its sandbox and take them back",
+      "closed": true,
+      "closedAt": "2026-10-18T18:55:06Z",
+      "milestone": "M3 First run (MVP)",
+      "url": "https://github.com/Cloudster1/Rotor/issues/23"
+    },
+    {
+      "number": 24,
+      "title": "Follow a run live",
+      "closed": true,
+      "closedAt": "2026-10-18T19:21:40Z",
+      "milestone": "M3 First run (MVP)",
+      "url": "https://github.com/Cloudster1/Rotor/issues/24"
+    },
+    {
+      "number": 25,
+      "title": "Prove end to end that a workflow writes to Exciter as the person who started it",
+      "closed": true,
+      "closedAt": "2026-10-18T19:31:37Z",
+      "milestone": "M3 First run (MVP)",
+      "url": "https://github.com/Cloudster1/Rotor/issues/25"
+    },
+    {
+      "number": 26,
+      "title": "Run sandboxes as hardened Kubernetes pods with gVisor",
+      "closed": true,
+      "closedAt": "2026-10-18T20:25:48Z",
+      "milestone": "M4 Sandboxes on Kubernetes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/26"
+    },
+    {
+      "number": 27,
+      "title": "Let sandboxes reach only the tools, OpenBao, Rotor and the model provider",
+      "closed": true,
+      "closedAt": "2026-10-18T21:47:41Z",
+      "milestone": "M4 Sandboxes on Kubernetes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/27"
+    },
+    {
+      "number": 28,
+      "title": "Destroy sandboxes after a period without interaction",
+      "closed": true,
+      "closedAt": "2026-10-18T20:50:32Z",
+      "milestone": "M4 Sandboxes on Kubernetes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/28"
+    },
+    {
+      "number": 29,
+      "title": "Ship a Helm chart",
+      "closed": true,
+      "closedAt": "2026-10-18T21:17:35Z",
+      "milestone": "M4 Sandboxes on Kubernetes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/29"
+    },
+    {
+      "number": 30,
+      "title": "Agree the API contract for approvals",
+      "closed": true,
+      "closedAt": "2026-10-19T07:15:48Z",
+      "milestone": "M5 Approvals",
+      "url": "https://github.com/Cloudster1/Rotor/issues/30"
+    },
+    {
+      "number": 31,
+      "title": "Pause a run at an approval step until a person decides",
+      "closed": true,
+      "closedAt": "2026-10-19T08:01:22Z",
+      "milestone": "M5 Approvals",
+      "url": "https://github.com/Cloudster1/Rotor/issues/31"
+    },
+    {
+      "number": 32,
+      "title": "Confirm writes to a tool before they happen",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M5 Approvals",
+      "url": "https://github.com/Cloudster1/Rotor/issues/32"
+    },
+    {
+      "number": 33,
+      "title": "Agree the API contract for triggers",
+      "closed": true,
+      "closedAt": "2026-10-19T09:06:06Z",
+      "milestone": "M6 Triggers",
+      "url": "https://github.com/Cloudster1/Rotor/issues/33"
+    },
+    {
+      "number": 34,
+      "title": "Run workflows on a schedule",
+      "closed": true,
+      "closedAt": "2026-10-19T09:27:44Z",
+      "milestone": "M6 Triggers",
+      "url": "https://github.com/Cloudster1/Rotor/issues/34"
+    },
+    {
+      "number": 35,
+      "title": "Start workflows from tool events",
+      "closed": true,
+      "closedAt": "2026-10-19T10:03:08Z",
+      "milestone": "M6 Triggers",
+      "url": "https://github.com/Cloudster1/Rotor/issues/35"
+    },
+    {
+      "number": 36,
+      "title": "Show and export the audit log",
+      "closed": true,
+      "closedAt": "2026-10-19T11:55:11Z",
+      "milestone": "M7 Observability and audit",
+      "url": "https://github.com/Cloudster1/Rotor/issues/36"
+    },
+    {
+      "number": 37,
+      "title": "Trace and measure runs with OpenTelemetry, with LangSmith optional",
+      "closed": true,
+      "closedAt": "2026-10-19T12:48:05Z",
+      "milestone": "M7 Observability and audit",
+      "url": "https://github.com/Cloudster1/Rotor/issues/37"
+    },
+    {
+      "number": 38,
+      "title": "Limit usage, cost and rate",
+      "closed": true,
+      "closedAt": "2026-10-19T12:19:01Z",
+      "milestone": "M7 Observability and audit",
+      "url": "https://github.com/Cloudster1/Rotor/issues/38"
+    },
+    {
+      "number": 39,
+      "title": "Write the threat model",
+      "closed": true,
+      "closedAt": "2026-10-19T14:02:02Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/39"
+    },
+    {
+      "number": 40,
+      "title": "Guard against prompt injection from tool content",
+      "closed": true,
+      "closedAt": "2026-10-19T19:18:12Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/40"
+    },
+    {
+      "number": 41,
+      "title": "Encrypt run data at rest and keep secrets out of it",
+      "closed": true,
+      "closedAt": "2026-10-19T18:13:57Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/41"
+    },
+    {
+      "number": 42,
+      "title": "Sign images, attach SBOMs and check dependencies",
+      "closed": true,
+      "closedAt": "2026-10-19T15:40:45Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/42"
+    },
+    {
+      "number": 43,
+      "title": "Join Dynamo: capabilities, integration docs and partner contract tests",
+      "closed": true,
+      "closedAt": "2026-10-19T21:34:03Z",
+      "milestone": "M9 Suite and release",
+      "url": "https://github.com/Cloudster1/Rotor/issues/43"
+    },
+    {
+      "number": 44,
+      "title": "Cut releases: VERSION, CHANGELOG, images and chart",
+      "closed": true,
+      "closedAt": "2026-10-19T21:49:29Z",
+      "milestone": "M9 Suite and release",
+      "url": "https://github.com/Cloudster1/Rotor/issues/44"
+    },
+    {
+      "number": 45,
+      "title": "Connect Armature now that it offers OAuth",
+      "closed": true,
+      "closedAt": "2026-10-22T10:09:45Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/45"
+    },
+    {
+      "number": 46,
+      "title": "Draw workflows in a visual editor on top of the spec",
+      "closed": true,
+      "closedAt": "2026-10-21T09:05:46Z",
+      "milestone": "M10 Assistants and editor",
+      "url": "https://github.com/Cloudster1/Rotor/issues/46"
+    },
+    {
+      "number": 47,
+      "title": "Offer Rotor's own MCP endpoint so assistants can start workflows and read runs",
+      "closed": true,
+      "closedAt": "2026-10-21T09:30:26Z",
+      "milestone": "M10 Assistants and editor",
+      "url": "https://github.com/Cloudster1/Rotor/issues/47"
+    },
+    {
+      "number": 53,
+      "title": "End all of a person's Rotor sessions when Keycloak signs them out everywhere",
+      "closed": true,
+      "closedAt": "2026-10-19T14:35:50Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/53"
+    },
+    {
+      "number": 67,
+      "title": "Read workflow YAML as YAML 1.2 in Go, and word two not-found refusals as sentences",
+      "closed": true,
+      "closedAt": "2026-10-18T16:25:07Z",
+      "milestone": "M2 Workflow engine",
+      "url": "https://github.com/Cloudster1/Rotor/issues/67"
+    },
+    {
+      "number": 84,
+      "title": "Register Rotor's webhook at Armature by itself",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/Cloudster1/Rotor/issues/84"
+    },
+    {
+      "number": 89,
+      "title": "Keep code nodes out of the runner's memory",
+      "closed": true,
+      "closedAt": "2026-10-19T17:03:07Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/89"
+    },
+    {
+      "number": 90,
+      "title": "Check a workflow's writes against the tools when a run starts",
+      "closed": true,
+      "closedAt": "2026-10-19T20:18:03Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/90"
+    },
+    {
+      "number": 91,
+      "title": "Seal approval content with the run's data key",
+      "closed": true,
+      "closedAt": "2026-10-19T19:45:26Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/91"
+    },
+    {
+      "number": 92,
+      "title": "Audit OpenBao access and require Valkey's password outside development",
+      "closed": true,
+      "closedAt": "2026-10-19T17:33:00Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/92"
+    },
+    {
+      "number": 96,
+      "title": "Let one person sign in for the first time from two browsers at once",
+      "closed": true,
+      "closedAt": "2026-10-19T16:11:24Z",
+      "milestone": "M8 Security hardening",
+      "url": "https://github.com/Cloudster1/Rotor/issues/96"
+    },
+    {
+      "number": 105,
+      "title": "Connect Stator once it offers OAuth",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/105"
+    },
+    {
+      "number": 109,
+      "title": "Keep the realm check passing now that Dynamo holds the canonical realm",
+      "closed": true,
+      "closedAt": "2026-10-21T08:22:22Z",
+      "milestone": "M9 Suite and release",
+      "url": "https://github.com/Cloudster1/Rotor/issues/109"
+    },
+    {
+      "number": 113,
+      "title": "Bump the runner's certifi past PYSEC-2026-4320 once its fix is two weeks old",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/Cloudster1/Rotor/issues/113"
+    },
+    {
+      "number": 114,
+      "title": "Let an assistant connect by its client ID metadata document",
+      "closed": true,
+      "closedAt": "2026-10-21T10:18:43Z",
+      "milestone": "M10 Assistants and editor",
+      "url": "https://github.com/Cloudster1/Rotor/issues/114"
+    },
+    {
+      "number": 116,
+      "title": "docs: a readme that shows what rotor does, as armature's does",
+      "closed": true,
+      "closedAt": "2026-10-21T12:24:33Z",
+      "milestone": "M9 Suite and release",
+      "url": "https://github.com/Cloudster1/Rotor/issues/116"
+    },
+    {
+      "number": 118,
+      "title": "Find out whether OpenShell can isolate a run, on the kind cluster",
+      "closed": true,
+      "closedAt": "2026-10-21T16:50:12Z",
+      "milestone": "M11 OpenShell sandboxes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/118"
+    },
+    {
+      "number": 119,
+      "title": "Start runs in OpenShell sandboxes, as an optional backend",
+      "closed": true,
+      "closedAt": "2026-10-21T16:29:49Z",
+      "milestone": "M11 OpenShell sandboxes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/119"
+    },
+    {
+      "number": 120,
+      "title": "Hold each run's network access to what its workflow declares, outside the sandbox",
+      "closed": true,
+      "closedAt": "2026-10-21T16:29:52Z",
+      "milestone": "M11 OpenShell sandboxes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/120"
+    },
+    {
+      "number": 121,
+      "title": "Keep a run's tokens and the model key out of its OpenShell sandbox",
+      "closed": true,
+      "closedAt": "2026-10-21T16:29:54Z",
+      "milestone": "M11 OpenShell sandboxes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/121"
+    },
+    {
+      "number": 122,
+      "title": "Choose OpenShell sandboxes in the chart, with the docs to install them",
+      "closed": true,
+      "closedAt": "2026-10-21T16:29:57Z",
+      "milestone": "M11 OpenShell sandboxes",
+      "url": "https://github.com/Cloudster1/Rotor/issues/122"
+    },
+    {
+      "number": 124,
+      "title": "Agree how triggers exclude events, skip a run's own writes and allow named writes unattended",
+      "closed": true,
+      "closedAt": "2026-10-22T09:37:13Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/124"
+    },
+    {
+      "number": 125,
+      "title": "Read Armature's issue key where Armature sends it",
+      "closed": true,
+      "closedAt": "2026-10-22T09:39:23Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/125"
+    },
+    {
+      "number": 126,
+      "title": "Let a trigger condition exclude an event",
+      "closed": true,
+      "closedAt": "2026-10-22T10:22:17Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/126"
+    },
+    {
+      "number": 127,
+      "title": "Keep a workflow from starting itself on its own writes",
+      "closed": true,
+      "closedAt": "2026-10-22T10:14:40Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/127"
+    },
+    {
+      "number": 128,
+      "title": "Let a trigger's owner allow named writes without an approval",
+      "closed": true,
+      "closedAt": "2026-10-22T10:10:45Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/128"
+    },
+    {
+      "number": 129,
+      "title": "Answer Armature's tools in the tool-stub, held to a recorded snapshot",
+      "closed": true,
+      "closedAt": "2026-10-22T10:10:12Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/129"
+    },
+    {
+      "number": 130,
+      "title": "Clarify an Armature story and turn it into Exciter requirements",
+      "closed": true,
+      "closedAt": "2026-10-22T14:38:24Z",
+      "milestone": "M12 Story to requirements",
+      "url": "https://github.com/Cloudster1/Rotor/issues/130"
+    },
+    {
+      "number": 131,
+      "title": "Agree the workflow spec for roles, loops, joins and workspaces",
+      "closed": true,
+      "closedAt": "2026-10-22T22:52:21Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/131"
+    },
+    {
+      "number": 132,
+      "title": "Find out how a run step can work on a repository in a sandbox",
+      "closed": true,
+      "closedAt": "2026-10-23T07:44:51Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/132"
+    },
+    {
+      "number": 133,
+      "title": "Give each agent node its own model, role and step budget",
+      "closed": true,
+      "closedAt": "2026-10-23T07:52:12Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/133"
+    },
+    {
+      "number": 134,
+      "title": "Bound how often a loop repeats and say what happens after",
+      "closed": true,
+      "closedAt": "2026-10-23T07:52:26Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/134"
+    },
+    {
+      "number": 135,
+      "title": "Run branches in parallel and wait for all of them",
+      "closed": true,
+      "closedAt": "2026-10-23T07:52:43Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/135"
+    },
+    {
+      "number": 136,
+      "title": "Give a step a workspace with the run's branch checked out",
+      "closed": true,
+      "closedAt": "2026-10-23T07:55:26Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/136"
+    },
+    {
+      "number": 137,
+      "title": "Clone and push an Armature project's repository as the person",
+      "closed": true,
+      "closedAt": "2026-10-23T07:53:55Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/137"
+    },
+    {
+      "number": 138,
+      "title": "Run a workspace's tests as a step and report each result",
+      "closed": true,
+      "closedAt": "2026-10-23T07:56:36Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/138"
+    },
+    {
+      "number": 139,
+      "title": "Bring Exciter's tools up to test plans and executions",
+      "closed": true,
+      "closedAt": "2026-10-23T07:51:58Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/139"
+    },
+    {
+      "number": 140,
+      "title": "Implement an Exciter feature through reviewed, tested code",
+      "closed": true,
+      "closedAt": "2026-10-23T10:14:22Z",
+      "milestone": "M13 Feature implementation",
+      "url": "https://github.com/Cloudster1/Rotor/issues/140"
+    },
+    {
+      "number": 159,
+      "title": "Take the suite's kit, icons, strings, formats and themes",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "UI",
+      "url": "https://github.com/Cloudster1/Rotor/issues/159"
+    },
+    {
+      "number": 160,
+      "title": "Follow the suite's shell and feedback",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "UI",
+      "url": "https://github.com/Cloudster1/Rotor/issues/160"
+    },
+    {
+      "number": 161,
+      "title": "Split Settings from Admin and grant access as the suite does",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "UI",
+      "url": "https://github.com/Cloudster1/Rotor/issues/161"
+    },
+    {
+      "number": 162,
+      "title": "Use the suite's sign-in and consent pages",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "UI",
+      "url": "https://github.com/Cloudster1/Rotor/issues/162"
+    },
+    {
+      "number": 163,
+      "title": "Let administrators cap the Stator pages a workflow may read",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M14 Confidentiality levels",
+      "url": "https://github.com/Cloudster1/Rotor/issues/163"
+    },
+    {
+      "number": 164,
+      "title": "Hold each run's Stator reads to its workflow's cap",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M14 Confidentiality levels",
+      "url": "https://github.com/Cloudster1/Rotor/issues/164"
+    },
+    {
+      "number": 165,
+      "title": "Show and change a workflow's Stator cap in the web app",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M14 Confidentiality levels",
+      "url": "https://github.com/Cloudster1/Rotor/issues/165"
+    },
+    {
+      "number": 166,
+      "title": "fix: keep the realm check passing against dynamo's redirect forms",
+      "closed": true,
+      "closedAt": "2026-10-31T15:10:43Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/166"
+    },
+    {
+      "number": 167,
+      "title": "chore: release rotor 0.1.0 for dynamo to pin",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/167"
+    },
+    {
+      "number": 168,
+      "title": "feat: let a service account add tools and hook secrets",
+      "closed": true,
+      "closedAt": "2026-10-31T17:56:44Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/168"
+    },
+    {
+      "number": 169,
+      "title": "test: install the chart as a subchart with outside keycloak and openbao",
+      "closed": true,
+      "closedAt": "2026-10-31T18:39:04Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/169"
+    },
+    {
+      "number": 170,
+      "title": "docs: tell dynamo what it needs to run rotor",
+      "closed": true,
+      "closedAt": "2026-10-31T15:33:58Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/170"
+    },
+    {
+      "number": 171,
+      "title": "feat: let bootstrap members in, as stator and exciter do",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "Backlog",
+      "url": "https://github.com/Cloudster1/Rotor/issues/171"
+    },
+    {
+      "number": 172,
+      "title": "feat: answer back-channel logout as rotor-api, the name the suite gives it",
+      "closed": true,
+      "closedAt": "2026-10-31T16:04:24Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/172"
+    },
+    {
+      "number": 173,
+      "title": "test: a workflow writes to exciter, armature and stator as alice",
+      "closed": false,
+      "closedAt": null,
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/173"
+    },
+    {
+      "number": 178,
+      "title": "feat: refuse to start a run when the installation runs no sandboxes",
+      "closed": true,
+      "closedAt": "2026-10-31T18:57:04Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/178"
+    },
+    {
+      "number": 181,
+      "title": "feat: show hook urls at the address tools deliver to",
+      "closed": true,
+      "closedAt": "2026-10-31T19:38:41Z",
+      "milestone": "M15 Dynamo",
+      "url": "https://github.com/Cloudster1/Rotor/issues/181"
+    }
+  ]
+}

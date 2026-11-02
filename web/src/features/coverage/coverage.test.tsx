@@ -67,6 +67,8 @@ describe("a project's coverage", () => {
     const list = await screen.findByRole("list", { name: "Requirements" });
     expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("Decomposed: Full");
     expect(within(list).getAllByRole("listitem")[0]).toHaveTextContent("Implemented: Partial");
+    // jsdom has no colors for axe to check, so the ink on the warning tint is held here.
+    expect(document.querySelector('[data-level="implemented:partial"]')).toHaveClass("bg-warning-subtle", "text-ink");
     expect(document.querySelector('[data-dimension="decomposed"]')).toHaveTextContent("50%");
     expect(document.querySelector('[data-dimension="verified"]')).toHaveTextContent("0 full, 0 partial, 2 none");
     expect(await axeViolations()).toEqual([]);

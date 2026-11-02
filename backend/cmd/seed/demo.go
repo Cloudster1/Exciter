@@ -26,7 +26,7 @@ func addDemo(ctx context.Context, cluster *db.Cluster, log *slog.Logger) error {
 		return errors.New("seed demo needs EXCITER_BOOTSTRAP_ADMIN_EMAIL: only an administrator may add the suite demo")
 	}
 	// Adding and following the demo reads and writes its row alone; the worker does the rest.
-	svc := demo.NewService(cluster, nil, nil, nil, nil, nil, nil)
+	svc := demo.NewService(cluster, nil, nil, nil, nil, nil, nil, nil)
 	d, err := svc.Status(db.PinPrimary(ctx))
 	switch {
 	case err != nil:

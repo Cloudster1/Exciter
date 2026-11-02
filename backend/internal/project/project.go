@@ -100,6 +100,9 @@ type CreateInput struct {
 	// Template names a template from GET /project-templates; empty makes a
 	// project with one type, the default workflow and no sections.
 	Template string `json:"template,omitempty"`
+	// Blueprint, which code alone sets, makes the project from it in place of the template it names, as the suite
+	// demo extends one (#488).
+	Blueprint *Blueprint `json:"-"`
 }
 
 // UpdateInput changes a project's details; nil leaves a field alone. The key
