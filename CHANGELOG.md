@@ -9,6 +9,11 @@ and the versioning [Semantic Versioning](https://semver.org/).
 
 ### Security
 
+- The web tooling takes minimatch 11.0.4 in place of 10.2.6, through an npm
+  override, which closes the globparts amplification advisory
+  GHSA-g3hv-75wg-m249. eslint still asks for 10, and no 10.x is patched
+  (#494).
+
 - An approval or rejection in a review session now needs the approve right
   in the project, checked when the decision is made, also straight in the
   database. A group named to approve, or to review, is refused when the
